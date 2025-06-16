@@ -1,7 +1,16 @@
-import XLSX from 'xlsx';
-import fs from 'fs';
-import path from 'path';
-import { findMajorityBrandConfiguration, findMajorityCategoryConfiguration, normalizeCategoryAndBrandRule } from './transform.js';
+import XLSX from "xlsx";
+import fs from "fs";
+import path from "path";
+import lodash from "lodash";
+import {
+  findMajorityBrandConfiguration,
+  findMajorityCategoryConfiguration,
+  normalizeCategoryAndBrandRule,
+} from "./transform.js";
+
+interface Any {
+  [key: string]: any;
+}
 
 /**
  * Reads an XLSX file and returns the first sheet's data as an array of objects.
@@ -16,19 +25,24 @@ function read_xlsx(filePath: string): {} {
       throw new Error(`File not found at path: ${resolvedPath}`);
     }
     const workbook = XLSX.readFile(resolvedPath);
-    return Object.fromEntries(workbook.SheetNames.map((sheetName) => {
+    return Object.fromEntries(
+      workbook.SheetNames.map((sheetName) => {
         const worksheet = workbook.Sheets[sheetName];
         return [
-            sheetName,
-            XLSX.utils.sheet_to_json(worksheet),
-        ]
-    }))
+          sheetName,
+          XLSX.utils.sheet_to_json(worksheet).map(item =>
+            lodash.mapKeys(item as Any, (value: any, key: string) => {
+              return key.toUpperCase().replace(/\s+/g, '_').replace(/\W/g, '');
+            })
+          ),
+        ];
+      })
+    );
   } catch (error) {
-    console.error('Error reading XLSX file:', error);
+    console.error("Error reading XLSX file:", error);
     throw error;
   }
 }
-
 
 /**
  * Writes a JSON string to a specified file path.
@@ -38,18 +52,26 @@ function read_xlsx(filePath: string): {} {
  */
 function write_json(filePath: string, jsonObject: {}): void {
   const resolvedPath = path.resolve(filePath);
-  fs.writeFileSync(resolvedPath, JSON.stringify(jsonObject, null, 2), 'utf8');
+  fs.writeFileSync(resolvedPath, JSON.stringify(jsonObject, null, 2), "utf8");
   console.log(`JSON data successfully written to ${resolvedPath}`);
 }
 
-const xlsxPath = './data/20250605 Master MD for SAP mapping.xlsx'
-const baseName = xlsxPath.split('.').slice(0, -1).join('.')
+// const xlsxPath = './data/20250605 Master MD for SAP mapping.xlsx'
+const xlsxPath =
+  "/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/GWL-SKU-CAT-BRAND-20250616.xlsx";
+const baseName = xlsxPath.split(".").slice(0, -1).join(".");
 
-const jsonObject = read_xlsx(xlsxPath)
-write_json(baseName + '.json' , jsonObject)
+const jsonObject = read_xlsx(xlsxPath);
+write_json(baseName + ".json", jsonObject);
 
-write_json(baseName + '.norm.json', normalizeCategoryAndBrandRule(jsonObject))
+write_json(baseName + ".norm.json", normalizeCategoryAndBrandRule(jsonObject));
 
-write_json(baseName + '.category.json', findMajorityCategoryConfiguration(jsonObject))
+write_json(
+  baseName + ".category.json",
+  findMajorityCategoryConfiguration(jsonObject)
+);
 
-write_json(baseName + '.brand.json', findMajorityBrandConfiguration(jsonObject))
+write_json(
+  baseName + ".brand.json",
+  findMajorityBrandConfiguration(jsonObject)
+);

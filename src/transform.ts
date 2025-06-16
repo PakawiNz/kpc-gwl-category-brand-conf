@@ -2,15 +2,15 @@ import lodash from "lodash";
 
 const BRAND_FOR_CATEGORY_MASTER = "$$$";
 
-const COLUMN_CATEGORY_NUMBER = "CATEGORY NUMBER"; // for master category config
-const COLUMN_CATEGORY = "Cate.";
-const COLUMN_CATEGORY_TEXT = "Category Text";
-const COLUMN_CATEGORY_SKUS = "SKUs";
-const COLUMN_BRAND = "Brand";
-const COLUMN_BRAND_NAME = "Brand Name";
-const COLUMN_EARNABLE = "Earn";
-const COLUMN_BURNABLE = "Pay with Carat";
-const COLUMN_EARN_RATE = "Earn rate";
+const COLUMN_CATEGORY_NUMBER = "CATEGORY_NUMBER"; // for master category config
+const COLUMN_CATEGORY = "CATE";
+const COLUMN_CATEGORY_TEXT = "CATEGORY_TEXT";
+const COLUMN_CATEGORY_SKUS = "SKUS";
+const COLUMN_BRAND = "BRAND";
+const COLUMN_BRAND_NAME = "BRAND_NAME";
+const COLUMN_EARNABLE = "EARN";
+const COLUMN_BURNABLE = "PAY_WITH_CARAT";
+const COLUMN_EARN_RATE = "EARN_RATE";
 
 interface Result {
   [key: string]: [boolean, boolean, number];
@@ -22,10 +22,10 @@ function getKeys(category: any, brand: any, skus: any): string[] {
   skus = `${skus ?? ""}`.trim();
   if (skus) {
     return skus.split(/\s*;\s*/);
-  } else if (brand) {
-    return [`${category}|${brand}`];
   } else if (brand == BRAND_FOR_CATEGORY_MASTER) {
     return [category];
+  } else if (brand) {
+    return [`${category}|${brand}`];
   } else {
     throw "invalid key";
   }
