@@ -12,20 +12,40 @@ const COLUMN_EARNABLE = "EARN";
 const COLUMN_BURNABLE = "PAY_WITH_CARAT";
 const COLUMN_EARN_RATE = "EARN_RATE";
 
-interface Result {
-  [key: string]: [boolean, boolean, number];
+type Config = [boolean, boolean, number];
+interface SubResult {
+  [key: string]: Config;
+}
+export interface Result {
+  SKU: SubResult;
+  CAT: SubResult;
+  ["CAT|BRN"]: SubResult;
 }
 
-function getKeys(category: any, brand: any, skus: any): string[] {
-  category = `${category ?? ""}`.trim();
-  brand = `${brand ?? ""}`.trim();
-  skus = `${skus ?? ""}`.trim();
+export function normalizeArticleId(id: any): string {
+  return `${id ?? ""}`.trim().replace(/[-_]/g, "");
+}
+export function normalizeBrandId(id: any): string {
+  return `${id ?? ""}`.trim().toUpperCase();
+}
+export function normalizeCategoryId(id: any): string {
+  return `${id ?? ""}`.trim().toLowerCase().replace(/[-_]/g, ""); //Handle case _ , - (PAR_001 => PAR-001 = Dup);
+}
+
+function getKeys(
+  category: any,
+  brand: any,
+  skus: any
+): [keyof Result, string][] {
+  skus = normalizeArticleId(skus);
+  brand = normalizeBrandId(brand);
+  category = normalizeCategoryId(category);
   if (skus) {
-    return skus.split(/\s*;\s*/);
+    return skus.split(/\s*;\s*/).map((s: string) => ["SKU", s]);
   } else if (brand == BRAND_FOR_CATEGORY_MASTER) {
-    return [category];
+    return [["CAT", category]];
   } else if (brand) {
-    return [`${category}|${brand}`];
+    return [["CAT|BRN", `${category}|${brand}`]];
   } else {
     throw "invalid key";
   }
@@ -35,7 +55,7 @@ function getConfig(
   earnableRaw: any,
   burnableRaw: any,
   earnRateRaw: any
-): Result[keyof Result] {
+): Config {
   const earnable = `${earnableRaw ?? ""}`;
   const burnable = `${burnableRaw ?? ""}`;
   const earnRate = Number(earnRateRaw);
@@ -64,8 +84,12 @@ function getConfig(
  * @param data The data to transform (e.g., an array of objects).
  * @returns A JSON string representation of the data.
  */
-export function normalizeCategoryAndBrandRule(sheets: any): {} {
-  const result: Result = {};
+export function normalizeCategoryAndBrandRule(sheets: any): Result {
+  const result: Result = {
+    SKU: {},
+    CAT: {},
+    ["CAT|BRN"]: {},
+  };
 
   for (const sheetName in sheets) {
     for (const item of sheets[sheetName]) {
@@ -91,10 +115,10 @@ export function normalizeCategoryAndBrandRule(sheets: any): {} {
           item[COLUMN_EARN_RATE]
         );
 
-        for (const key of keys) {
+        for (const [group, key] of keys) {
           try {
-            if (result[key]) throw "duplicated configuration";
-            result[key] = config;
+            if (result[group][key]) throw "duplicated configuration";
+            result[group][key] = config;
           } catch (e) {
             console.warn(e, `[Sheet: "${sheetName}" Key: "${key}"]`);
           }
@@ -144,7 +168,11 @@ export function findMajorityCategoryConfiguration(sheets: any): {} {
     }
   }
 
-  return lodash.sortBy(Object.keys(categories).map((category) => findMajority(categories[category])));
+  return lodash.sortBy(
+    Object.keys(categories).map((category) =>
+      findMajority(categories[category])
+    )
+  );
 }
 
 export function findMajorityBrandConfiguration(sheets: any): {} {
@@ -170,5 +198,7 @@ export function findMajorityBrandConfiguration(sheets: any): {} {
     }
   }
 
-  return lodash.sortBy(Object.keys(brands).map((brand) => findMajority(brands[brand])));
+  return lodash.sortBy(
+    Object.keys(brands).map((brand) => findMajority(brands[brand]))
+  );
 }
