@@ -2,7 +2,7 @@ import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
 import lodash from "lodash";
-import { Any } from "./type.js";
+import { Any } from "../type.js";
 
 /**
  * Reads an XLSX file and returns the first sheet's data as an array of objects.

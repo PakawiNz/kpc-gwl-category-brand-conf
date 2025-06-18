@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Any } from "./type.js";
+import { Any } from "../type.js";
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import { Transform } from 'stream';

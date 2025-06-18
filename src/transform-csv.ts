@@ -4,10 +4,10 @@ import {
   normalizeBrandId,
   normalizeCategoryId,
   Result,
-} from "./transform.js";
+} from "./conf-xlsx-to-json/transform.js";
 import { Any } from "./type.js";
 import fs from "fs";
-import { read_csv } from "./read-csv.js";
+import { read_csv } from "./utils/read-csv.js";
 
 function formatCsvValue(value: any): string {
   return typeof value === "string" &&
@@ -48,7 +48,7 @@ export function transformArticleMaster(
     if (!record.SKU_NO) return;
     const sku = normalizeArticleId(record.SKU_NO);
     const cat = normalizeCategoryId(record.CATEGORY_ID);
-    const brand = normalizeBrandId(record.BRAND_COD);
+    const brand = normalizeBrandId(record.BRAND_CODE);
     if (!normalizedJsonObject.CAT[cat]) {
       invalidCategory.add(cat);
     }
