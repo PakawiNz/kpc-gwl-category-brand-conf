@@ -90,29 +90,32 @@ class Privilege {
   code: string;
   discount: number;
   burnCarat: boolean;
-  tierName?: string;
+  tierName: string;
+  maxEarnRate: number;
   constructor(
     code: string,
     discount: number,
     burnCarat: boolean,
-    tierName?: string
+    tierName: string,
+    maxEarnRate: number
   ) {
     this.code = code;
     this.discount = discount;
     this.burnCarat = burnCarat;
     this.tierName = tierName;
+    this.maxEarnRate = maxEarnRate;
   }
 }
 
 const PRIVILEGES = [
-  new Privilege("PWPGNV5", 5, true, "NAVY"),
-  new Privilege("PWPGSL10", 10, true, "SCARLET"),
-  new Privilege("PWPGCR20", 20, true, "CROWN"),
-  new Privilege("PWPGVG20", 20, true, "VEGA"),
-  new Privilege("PWPGCT20", 20, true, "CRYSTAL"),
-  new Privilege("PWPGVVIP30", 30, true, "VVIP"),
-  new Privilege("PWPGBD25", 25, false),
-  new Privilege("PWPGCTBD30", 30, false),
+  new Privilege("PWPGNV5", 5, true, "NAVY", 1),
+  new Privilege("PWPGSL10", 10, true, "SCARLET", 1),
+  new Privilege("PWPGCR20", 20, true, "CROWN", 2),
+  new Privilege("PWPGVG20", 20, true, "VEGA", 3),
+  new Privilege("PWPGCT20", 20, true, "CRYSTAL", 1),
+  new Privilege("PWPGVVIP30", 30, true, "VVIP", 3),
+  new Privilege("PWPGBD25", 25, false, "", 0),
+  new Privilege("PWPGCTBD30", 30, false, "", 0),
 ];
 const PRIVILEGES_MAP = lodash.keyBy(PRIVILEGES, "code");
 // const TIER_MAP = lodash.keyBy(lodash.filter(PRIVILEGES, 'tierCode'), 'tierCode');
@@ -282,10 +285,10 @@ async function getAndVerifyMemberPrivilege(
   } else if (
     !privileges.some((privilege) => privilege.tierName == member.tier)
   ) {
-    console.log(`❌ Tier invalid for ${member.id}`);
+    console.log(`❌ Tier invalid for ${member.id} EXP: ${member.tier}`, privileges);
     return [];
   } else {
-    console.log(`✅ Tier valid for ${member.id}`);
+    console.log(`✅ Tier valid for ${member.id} EXP: ${member.tier}`);
     return privileges;
   }
 }
@@ -293,7 +296,7 @@ async function getAndVerifyMemberPrivilege(
 async function verifyEarn(
   channel: ChannelConfiguration,
   memberId: string,
-  privileges: Privilege[],
+  privilege: Privilege,
   articles: Article[]
 ) {
   const res = await fetch(
@@ -324,7 +327,7 @@ async function verifyEarn(
   );
   const skus = articles.map((article) => [article.sku, article.earnRate]);
   const expectedPoint = lodash.sum(
-    articles.map((article) => article.earnRate * 40)
+    articles.map((article) => Math.min(article.earnRate, privilege.maxEarnRate) * 40)
   );
   const result = await res.json();
   if (res.status != 200) {
@@ -342,7 +345,7 @@ async function verifyEarn(
 async function verifyBurn(
   channel: ChannelConfiguration,
   memberId: string,
-  privileges: Privilege[],
+  privilege: Privilege,
   articles: Article[]
 ) {
   const res = await fetch(
@@ -414,21 +417,25 @@ async function main() {
   }
 
   for (const channel of CHANNEL_CONFIGURATIONS) {
-    console.log("==========================================");
+    console.log(
+      "===================================================================================="
+    );
     console.log(channel.partnerCode, channel.brandCode, channel.branchCode);
     if (!(await channel.getAccessToken())) {
       console.log("❌ Failed to get access token");
       return;
     }
     console.log("✅ Got access token");
-    for (const member of [MEMBERS[0]]) {
+    for (const member of MEMBERS) {
+      console.log("==========================================");
+      console.log(member.id, member.tier);
       const privileges = memberPrivileges[member.id];
       for (const privilege of privileges) {
         if (privilege.tierName) {
           const articles = ARTICLES.filter((a) => a.channel === channel);
           await verifyEligibility(channel, member.id, privilege, articles);
-          await verifyEarn(channel, member.id, [privilege], articles);
-          await verifyBurn(channel, member.id, [privilege], articles);
+          await verifyEarn(channel, member.id, privilege, articles);
+          await verifyBurn(channel, member.id, privilege, articles);
         }
       }
     }
