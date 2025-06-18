@@ -19,23 +19,25 @@ function write_json(filePath: string, jsonObject: {}): void {
   console.log(`JSON data successfully written to ${resolvedPath}`);
 }
 
-const xlsxPath =
-  "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER.xlsx";
-const baseName = xlsxPath.split(".").slice(0, -1).join(".");
+export function convertXlsxConfigurationToJson(xlsxPath: string, jsonPath?: string) {
+  const baseName = xlsxPath.split(".").slice(0, -1).join(".");
 
-const jsonObject = read_xlsx(xlsxPath);
-write_json(baseName + ".json", jsonObject);
+  const jsonObject = read_xlsx(xlsxPath);
+  write_json(baseName + ".json", jsonObject);
 
-const normalizedJsonObject = normalizeCategoryAndBrandRule(jsonObject);
-write_json(baseName + ".norm.json", normalizedJsonObject);
-write_json("./data/mock/cat-brand-sku-config.json", normalizedJsonObject);
+  const normalizedJsonObject = normalizeCategoryAndBrandRule(jsonObject);
+  write_json(baseName + ".norm.json", normalizedJsonObject);
 
-write_json(
-  baseName + ".category.json",
-  findMajorityCategoryConfiguration(jsonObject)
-);
+  write_json(
+    baseName + ".category.json",
+    findMajorityCategoryConfiguration(jsonObject)
+  );
 
-write_json(
-  baseName + ".brand.json",
-  findMajorityBrandConfiguration(jsonObject)
-);
+  write_json(
+    baseName + ".brand.json",
+    findMajorityBrandConfiguration(jsonObject)
+  );
+  if (jsonPath) {
+    write_json(jsonPath, normalizedJsonObject);
+  }
+}

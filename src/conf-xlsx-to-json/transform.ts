@@ -16,7 +16,7 @@ type Config = [boolean, boolean, number];
 interface SubResult {
   [key: string]: Config;
 }
-export interface Result {
+export interface ConfigurationMapper {
   SKU: SubResult;
   CAT: SubResult;
   ["CAT|BRN"]: SubResult;
@@ -36,7 +36,7 @@ function getKeys(
   category: any,
   brand: any,
   skus: any
-): [keyof Result, string][] {
+): [keyof ConfigurationMapper, string][] {
   skus = normalizeArticleId(skus);
   brand = normalizeBrandId(brand);
   category = normalizeCategoryId(category);
@@ -84,8 +84,8 @@ function getConfig(
  * @param data The data to transform (e.g., an array of objects).
  * @returns A JSON string representation of the data.
  */
-export function normalizeCategoryAndBrandRule(sheets: any): Result {
-  const result: Result = {
+export function normalizeCategoryAndBrandRule(sheets: any): ConfigurationMapper {
+  const result: ConfigurationMapper = {
     SKU: {},
     CAT: {},
     ["CAT|BRN"]: {},
