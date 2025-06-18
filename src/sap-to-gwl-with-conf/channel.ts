@@ -1,3 +1,4 @@
+import { DEFAULT_CONFIG } from "./config.js";
 import { EarnBurnConfiguration } from "./type.js";
 
 export class ChannelConfiguration {
@@ -21,55 +22,53 @@ export class ChannelConfiguration {
   }
 }
 
-export const CHANNEL_DEFAULT_CONFIG: EarnBurnConfiguration = ["N", "N", 0];
-
 export const CHANNEL_CONFIGURATIONS = [
   new ChannelConfiguration(
     "KPD_OFFLINE",
     undefined,
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     undefined,
     false
   ),
   new ChannelConfiguration(
     "KPT_OFFLINE",
     undefined,
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     undefined,
     false
   ),
   new ChannelConfiguration(
     "KPC_OFFLINE",
     undefined,
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     undefined,
     false
   ),
   new ChannelConfiguration(
     "KPC_ONLINE_TH",
     undefined,
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     undefined,
     true
   ),
   new ChannelConfiguration(
     "KPC_ONLINE_CN",
     undefined,
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     undefined,
     true
   ),
   new ChannelConfiguration(
     "KPC_ONLINE_THT",
     undefined,
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     undefined,
     true
   ),
   new ChannelConfiguration(
     "KPC_ONLINE_FIRSTER",
     ["Y", "Y", 1],
-    CHANNEL_DEFAULT_CONFIG,
+    undefined,
     ["", "", ""],
     true
   ),

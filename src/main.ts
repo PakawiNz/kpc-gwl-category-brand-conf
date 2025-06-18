@@ -14,7 +14,10 @@ import { SapToGwlWithConfService } from "./sap-to-gwl-with-conf/service.js";
 async function main() {
   //   convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, SKU_CONFIG_JSON_PATH);
   const service = new SapToGwlWithConfService(SKU_CONFIG_JSON_PATH);
-  await service.execute(SOURCE_FOLDERS);
+  await service.executeSkuConfig(SOURCE_FOLDERS);
+  await service.executeCostCenterConfig(SOURCE_FOLDERS);
+  console.log('complete')
+  debugger
 }
 
 // ================================================================================================================

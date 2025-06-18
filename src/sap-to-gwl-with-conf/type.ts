@@ -19,3 +19,8 @@ export enum FileType {
   BUSINESS_AREA = "BUSINESS_AREA",
   COST_CENTER = "COST_CENTER",
 }
+
+export interface PathWithFileType {
+  path: string;
+  fileType: FileType;
+}

@@ -8,6 +8,7 @@ import { SapFileConversionService } from "./conversion.js";
 import { pipeToMultipleWritables } from "../utils/pipeline-to-multiple-writables.js";
 import { createConfigurationGetter } from "./config.js";
 import { listFilesInFolder } from "./lister.js";
+import { convertCostCenterFiles } from "./costcenter.js";
 
 export class SapToGwlWithConfService {
   startTime: string;
@@ -19,13 +20,30 @@ export class SapToGwlWithConfService {
       configurationGetter
     );
   }
-  async execute(
+  async executeCostCenterConfig(
     sourceFileFolder: string,
     startDate: string = "" /* YYYYMMDD */
-  ) {
-    for (const file of listFilesInFolder(sourceFileFolder, startDate)) {
+  ): Promise<void> {
+    convertCostCenterFiles(
+      listFilesInFolder(sourceFileFolder, startDate),
+      `./data/output/COST_CENTER_${this.startTime}.csv`
+    );
+  }
+  async executeSkuConfig(
+    sourceFileFolder: string,
+    startDate: string = "" /* YYYYMMDD */
+  ): Promise<void> {
+    const SKU_CONFIG_TYPE = [
+      // FileType.ARTICLE,
+      FileType.BRAND,
+      FileType.CATEGORY,
+    ];
+    const files = listFilesInFolder(sourceFileFolder, startDate);
+    for (const file of files) {
       const { path, fileType } = file;
-      await this.readAndConvertAndUpload(path, fileType);
+      if (SKU_CONFIG_TYPE.includes(fileType)) {
+        await this.readAndConvertAndUpload(path, fileType);
+      }
     }
   }
   async readAndConvertAndUpload(

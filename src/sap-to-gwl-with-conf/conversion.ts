@@ -1,4 +1,5 @@
-import { CHANNEL_DEFAULT_CONFIG, ChannelConfiguration } from "./channel.js";
+import { ChannelConfiguration } from "./channel.js";
+import { DEFAULT_CONFIG } from "./config.js";
 import { ConfigurationGetter, CSVRecord, FileType } from "./type.js";
 
 function normalizeArticleId(id: string): string {
@@ -70,8 +71,7 @@ export class SapFileConversionService {
     const brandId = normalizeBrandId(row["BRAND_ID"]);
     const brandDesc = normalizeText(row["BRAND_DESCR"]);
     const [earnable, burnable] =
-      configurationGetter(undefined, brandId, undefined) ??
-      CHANNEL_DEFAULT_CONFIG;
+      configurationGetter(undefined, brandId, undefined) ?? DEFAULT_CONFIG;
     return [brandId, brandDesc, earnable, burnable];
   }
   categoryHeaders = [
@@ -87,8 +87,7 @@ export class SapFileConversionService {
     if (categoryId.length != 3) return;
     const categoryDesc = normalizeText(row["KSCHG"]);
     const [earnable, burnable, earnRate] =
-      configurationGetter(categoryId, undefined, undefined) ??
-      CHANNEL_DEFAULT_CONFIG;
+      configurationGetter(categoryId, undefined, undefined) ?? DEFAULT_CONFIG;
     if (earnable === "" || burnable === "" || earnRate === "") return;
     return [categoryId, categoryDesc, earnable, burnable, earnRate.toString()];
   }
@@ -114,7 +113,7 @@ export class SapFileConversionService {
     const brandCode = normalizeBrandId(row["BRAND_ID"]);
     if (!sku || !categoryId || !brandCode) return;
     const [earnable, burnable, earnRate] =
-      configurationGetter(categoryId, brandCode, sku) ?? CHANNEL_DEFAULT_CONFIG;
+      configurationGetter(categoryId, brandCode, sku) ?? DEFAULT_CONFIG;
     return [
       trimZero ? sku.replace(/^0+/, "") : sku,
       productName,
