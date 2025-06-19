@@ -29,13 +29,15 @@ export function listFilesInFolder(
         lodash.max([maxDatetimeEachType[f.fileType] ?? "", f.datetime]) ?? "";
     }
   });
-  return allFiles.filter(f => {
+  const effectiveFiles =  allFiles.filter((f) => {
     if (f.nature == "FULL") {
       return maxDatetimeEachType[f.fileType] == f.datetime;
     } else {
-      return true;
+      return !maxDatetimeEachType[f.fileType] || maxDatetimeEachType[f.fileType] < f.datetime;
     }
   });
+
+  return lodash.sortBy(effectiveFiles, ['datetime'])
 }
 
 function getFileTypeFromName(module: string) {

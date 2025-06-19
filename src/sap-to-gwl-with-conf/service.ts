@@ -20,6 +20,12 @@ export class SapToGwlWithConfService {
       configurationGetter
     );
   }
+  listFilesInFolder(
+    sourceFileFolder: string,
+    startDate: string = "" /* YYYYMMDD */
+  ) {
+    return listFilesInFolder(sourceFileFolder, startDate);
+  }
   async executeCostCenterConfig(
     sourceFileFolder: string,
     startDate: string = "" /* YYYYMMDD */
