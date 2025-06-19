@@ -2,16 +2,16 @@ import { ChannelConfiguration } from "./channel.js";
 import { DEFAULT_CONFIG } from "./config.js";
 import { ConfigurationGetter, CSVRecord, FileType } from "./type.js";
 
-function normalizeArticleId(id: string): string {
+export function normalizeArticleId(id: string): string {
   return `${id ?? ""}`.trim().replace(/[-_]/g, "");
 }
-function normalizeBrandId(id: string): string {
+export function normalizeBrandId(id: string): string {
   return `${id ?? ""}`.trim().toUpperCase();
 }
-function normalizeCategoryId(id: string): string {
+export function normalizeCategoryId(id: string): string {
   return `${id ?? ""}`.trim().toLowerCase().replace(/[-_]/g, ""); //Handle case _ , - (PAR_001 => PAR-001 = Dup);
 }
-function normalizeText(text: string): string {
+export function normalizeText(text: string): string {
   return `${text ?? ""}`.trim().replace(",", " ");
 }
 

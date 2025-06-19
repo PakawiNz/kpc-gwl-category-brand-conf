@@ -76,13 +76,13 @@ function getConfigFromEnv(key: string) {
 }
 
 const CHANNEL_CONFIGURATIONS: ChannelConfiguration[] = [
-  new ChannelConfiguration(...getConfigFromEnv("KPC_POS_CHANNEL_CONFIG")),
+  // new ChannelConfiguration(...getConfigFromEnv("KPC_POS_CHANNEL_CONFIG")),
   new ChannelConfiguration(...getConfigFromEnv("KPD_POS_CHANNEL_CONFIG")),
   new ChannelConfiguration(...getConfigFromEnv("KPT_POS_CHANNEL_CONFIG")),
-  new ChannelConfiguration(...getConfigFromEnv("KPC_COMMERCE_CHANNEL_CONFIG")),
-  new ChannelConfiguration(...getConfigFromEnv("KPC_FIRSTER_CHANNEL_CONFIG")),
-  new ChannelConfiguration(...getConfigFromEnv("KPC_CHINA_CHANNEL_CONFIG")),
-  new ChannelConfiguration(...getConfigFromEnv("KPC_THT_CHANNEL_CONFIG")),
+  // new ChannelConfiguration(...getConfigFromEnv("KPC_COMMERCE_CHANNEL_CONFIG")),
+  // new ChannelConfiguration(...getConfigFromEnv("KPC_FIRSTER_CHANNEL_CONFIG")),
+  // new ChannelConfiguration(...getConfigFromEnv("KPC_CHINA_CHANNEL_CONFIG")),
+  // new ChannelConfiguration(...getConfigFromEnv("KPC_THT_CHANNEL_CONFIG")),
 ];
 const CHANNELS = lodash.keyBy(CHANNEL_CONFIGURATIONS, "client_id");
 
@@ -115,7 +115,7 @@ const PRIVILEGES = [
   new Privilege("PWPGCT20", 20, true, "CRYSTAL", 1),
   new Privilege("PWPGVVIP30", 30, true, "VVIP", 3),
   new Privilege("PWPGBD25", 25, false, "", 0),
-  new Privilege("PWPGCTBD30", 30, false, "", 0),
+  new Privilege("PWPHRSTF30", 30, false, "", 0),
 ];
 const PRIVILEGES_MAP = lodash.keyBy(PRIVILEGES, "code");
 // const TIER_MAP = lodash.keyBy(lodash.filter(PRIVILEGES, 'tierCode'), 'tierCode');
@@ -167,7 +167,7 @@ class Member {
     this.tier = tier;
   }
 }
-const MEMBERS = [
+const MEMBERS: Member[] = [
   new Member("2423992", "NAVY"),
   new Member("2421914", "SCARLET"),
   new Member("2424015", "CROWN"),
@@ -175,40 +175,40 @@ const MEMBERS = [
   new Member("2424018", "VVIP"),
   new Member("2421913", "CRYSTAL"),
   // =============================================
-  // new Member("2421913", "CRYSTAL"),
-  // new Member("2421914", "SCARLET"),
-  // new Member("2421916", "VEGA"),
-  // new Member("2423992", "NAVY"),
-  // new Member("2424000", "SCARLET"),
-  // new Member("2424015", "CROWN"),
-  // new Member("2424017", "VEGA"),
-  // new Member("2424018", "VVIP"),
-  // new Member("2424020", "CRYSTAL"),
-  // new Member("2424021", "NAVY"),
-  // new Member("2424023", "SCARLET"),
-  // new Member("2424026", "CROWN"),
-  // new Member("2424027", "VEGA"),
-  // new Member("2424029", "CRYSTAL"),
-  // new Member("2424031", "CRYSTAL"),
-  // new Member("2424035", "CRYSTAL"),
-  // new Member("2424037", "CRYSTAL"),
-  // new Member("2424042", "CRYSTAL"),
-  // new Member("2424044", "SCARLET"),
-  // new Member("2424045", "SCARLET"),
-  // new Member("2424046", "SCARLET"),
-  // new Member("2424048", "SCARLET"),
-  // new Member("2424049", "SCARLET"),
-  // new Member("2424050", "SCARLET"),
-  // new Member("2424051", "NAVY"),
-  // new Member("2424053", "SCARLET"),
-  // new Member("2424055", "CROWN"),
-  // new Member("2424057", "VEGA"),
-  // new Member("2424059", "VVIP"),
-  // new Member("2424062", "CRYSTAL"),
-  // new Member("2424064", "SCARLET"),
-  // new Member("2424068", "CROWN"),
-  // new Member("2424069", "VEGA"),
-  // new Member("2427756", "CRYSTAL"),
+  new Member("2421913", "CRYSTAL"),
+  new Member("2421914", "SCARLET"),
+  new Member("2421916", "VEGA"),
+  new Member("2423992", "NAVY"),
+  new Member("2424000", "SCARLET"),
+  new Member("2424015", "CROWN"),
+  new Member("2424017", "VEGA"),
+  new Member("2424018", "VVIP"),
+  new Member("2424020", "CRYSTAL"),
+  new Member("2424021", "NAVY"),
+  new Member("2424023", "SCARLET"),
+  new Member("2424026", "CROWN"),
+  new Member("2424027", "VEGA"),
+  new Member("2424029", "CRYSTAL"),
+  new Member("2424031", "CRYSTAL"),
+  new Member("2424035", "CRYSTAL"),
+  new Member("2424037", "CRYSTAL"),
+  new Member("2424042", "CRYSTAL"),
+  new Member("2424044", "SCARLET"),
+  new Member("2424045", "SCARLET"),
+  new Member("2424046", "SCARLET"),
+  new Member("2424048", "SCARLET"),
+  new Member("2424049", "SCARLET"),
+  new Member("2424050", "SCARLET"),
+  new Member("2424051", "NAVY"),
+  new Member("2424053", "SCARLET"),
+  new Member("2424055", "CROWN"),
+  new Member("2424057", "VEGA"),
+  new Member("2424059", "VVIP"),
+  new Member("2424062", "CRYSTAL"),
+  new Member("2424064", "SCARLET"),
+  new Member("2424068", "CROWN"),
+  new Member("2424069", "VEGA"),
+  new Member("2427756", "CRYSTAL"),
 ];
 
 async function verifyEligibility(
@@ -285,10 +285,16 @@ async function getAndVerifyMemberPrivilege(
   } else if (
     !privileges.some((privilege) => privilege.tierName == member.tier)
   ) {
-    console.log(`❌ Tier invalid for ${member.id} EXP: ${member.tier}`, privileges);
+    console.log(
+      `❌ Tier invalid for ${member.id} EXP: ${member.tier}`,
+      privileges
+    );
     return [];
   } else {
-    console.log(`✅ Tier valid for ${member.id} EXP: ${member.tier}`);
+    console.log(
+      `✅ Tier valid for ${member.id} EXP: ${member.tier}`,
+      privileges.map((p) => p.code)
+    );
     return privileges;
   }
 }
@@ -327,7 +333,9 @@ async function verifyEarn(
   );
   const skus = articles.map((article) => [article.sku, article.earnRate]);
   const expectedPoint = lodash.sum(
-    articles.map((article) => Math.min(article.earnRate, privilege.maxEarnRate) * 40)
+    articles.map(
+      (article) => Math.min(article.earnRate, privilege.maxEarnRate) * 40
+    )
   );
   const result = await res.json();
   if (res.status != 200) {
@@ -415,7 +423,6 @@ async function main() {
       member
     );
   }
-
   for (const channel of CHANNEL_CONFIGURATIONS) {
     console.log(
       "===================================================================================="
@@ -436,6 +443,8 @@ async function main() {
           await verifyEligibility(channel, member.id, privilege, articles);
           await verifyEarn(channel, member.id, privilege, articles);
           await verifyBurn(channel, member.id, privilege, articles);
+        } else {
+          await verifyEligibility(channel, member.id, privilege, []);
         }
       }
     }
@@ -446,5 +455,4 @@ async function main() {
     // await verifyEarn(channel, [privileges[1]]);
   }
 }
-
 main();

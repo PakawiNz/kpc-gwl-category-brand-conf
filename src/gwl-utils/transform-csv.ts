@@ -1,13 +1,13 @@
 import { WriteStream } from "fs";
 import {
+  ConfigurationMapper,
   normalizeArticleId,
   normalizeBrandId,
   normalizeCategoryId,
-  Result,
-} from "./conf-xlsx-to-json/transform.js";
-import { Any } from "./type.js";
+} from "../conf-xlsx-to-json/transform.js";
 import fs from "fs";
-import { read_csv } from "./utils/read-csv.js";
+import { read_csv } from "../utils/read-csv.js";
+import { Any } from "../type.js";
 
 function formatCsvValue(value: any): string {
   return typeof value === "string" &&
@@ -27,7 +27,7 @@ function prepOutputStream(headers: string[], csvPath: string): WriteStream {
 }
 
 export function transformArticleMaster(
-  normalizedJsonObject: Result,
+  normalizedJsonObject: ConfigurationMapper,
   csvPath: string
 ) {
   const csvStream = read_csv(csvPath);
@@ -83,7 +83,7 @@ export function transformArticleMaster(
 }
 
 export function transformCategoryMaster(
-  normalizedJsonObject: Result,
+  normalizedJsonObject: ConfigurationMapper,
   csvPath: string
 ) {
   const csvStream = read_csv(csvPath);
@@ -128,7 +128,7 @@ export function transformCategoryMaster(
 }
 
 export function transformBrandMaster(
-  normalizedJsonObject: Result,
+  normalizedJsonObject: ConfigurationMapper,
   csvPath: string
 ) {
   const csvStream = read_csv(csvPath);

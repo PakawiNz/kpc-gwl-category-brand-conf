@@ -7,7 +7,7 @@ export interface ChunkWriteStreamOptions extends WritableOptions {
   filename?: string;
   extension?: string;
   maxFileSize?: number;
-  transformLine?: (line: string, currentWriteStreamLineNumber: number) => string | undefined;
+  transformLine?: (line: string) => string | undefined;
   getFileHeader?: (part: number) => string; // Header for each new file part
   getFilename?: (part: number) => string;
 }
@@ -22,7 +22,6 @@ export class ChunkWriteStream extends Writable {
   private currentWriteStream: Writable | null;
   private generatedFiles: string[];
   private lineBuffer: string; // Buffer for incomplete lines
-  private currentWriteStreamLineNumber: number; // Buffer for incomplete lines
   private transformLine?: ChunkWriteStreamOptions['transformLine'];
   private getFileHeader?: ChunkWriteStreamOptions['getFileHeader'];
   private getFilename?: ChunkWriteStreamOptions['getFilename'];
@@ -43,7 +42,6 @@ export class ChunkWriteStream extends Writable {
     this.currentWriteStream = null;
     this.generatedFiles = [];
     this.lineBuffer = '';
-    this.currentWriteStreamLineNumber = 0;
     this.transformLine = options.transformLine;
     this.getFileHeader = options.getFileHeader;
     this.getFilename = options.getFilename ?? ((part) => `${this.filename}-part-${part}`);
@@ -75,7 +73,6 @@ export class ChunkWriteStream extends Writable {
           reject(err);
         });
         this.currentFileSize = 0;
-        this.currentWriteStreamLineNumber = 0;
 
         // Write the per-file header if getFileHeader is provided
         if (this.getFileHeader) {
@@ -85,7 +82,6 @@ export class ChunkWriteStream extends Writable {
             const headerBuffer = Buffer.from(headerOutput, 'utf8');
             this.currentWriteStream!.write(headerBuffer);
             this.currentFileSize += headerBuffer.length;
-            // Note: currentWriteStreamLineNumber is not incremented here,
             // as transformLine's lineNumber is for lines it processes.
           }
         }
@@ -115,7 +111,7 @@ export class ChunkWriteStream extends Writable {
     return (
       stream
         .split('\n')
-        .map((line) => this.transformLine!(line, this.currentWriteStreamLineNumber++))
+        .map((line) => this.transformLine!(line))
         .filter((line) => line !== undefined)
         .join('\n') + '\n'
     );

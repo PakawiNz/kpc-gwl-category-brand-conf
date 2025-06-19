@@ -12,7 +12,7 @@ export interface ConfigurationMapper {
 
 export const DEFAULT_CONFIG: EarnBurnConfiguration = ["N", "N", 0];
 
-function convertConfig(config: any): EarnBurnConfiguration {
+export function convertConfig(config: any): EarnBurnConfiguration {
   return [
     config ? (config[0] ? "Y" : "N") : "",
     config ? (config[1] ? "Y" : "N") : "",
@@ -24,12 +24,16 @@ export function createConfigurationGetter(configJsonPath: string) {
   const jsonContent = JSON.parse(
     fs.readFileSync(configJsonPath, "utf8")
   ) as ConfigurationMapper;
-  return (
+  const fn = (
     category?: string,
     brand?: string,
     article?: string
   ): EarnBurnConfiguration | undefined => {
-    if (category !== undefined && brand !== undefined && article !== undefined) {
+    if (
+      category !== undefined &&
+      brand !== undefined &&
+      article !== undefined
+    ) {
       const config =
         jsonContent["SKU"][article] ||
         jsonContent["CAT|BRN"][`${category}|${brand}`];
@@ -43,4 +47,6 @@ export function createConfigurationGetter(configJsonPath: string) {
       throw "invalid configuration";
     }
   };
+  fn.jsonContent = jsonContent;
+  return fn;
 }

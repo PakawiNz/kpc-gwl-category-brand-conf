@@ -1,3 +1,4 @@
+import { getCSV } from "../utils/read-csv.js";
 import { FileType, PathWithFileType } from "./type.js";
 import fs from "fs";
 
@@ -6,23 +7,6 @@ const COST_CENTER_TYPE = [
   FileType.COMPANY,
   FileType.COST_CENTER,
 ];
-
-function getCSV(csvPath: string, delimiter: string) {
-  const lines = fs.readFileSync(csvPath, "utf8").split("\n");
-  let headers;
-  let isFirstLine = true;
-  const data = [];
-  for (const line of lines) {
-    if (isFirstLine) {
-      headers = line.split(delimiter);
-      isFirstLine = false;
-    } else {
-      const row = line.split(delimiter);
-      data.push(Object.fromEntries(headers!.map((head, i) => [head, row[i]])));
-    }
-  }
-  return data;
-}
 
 export async function convertCostCenterFiles(
   files: PathWithFileType[],

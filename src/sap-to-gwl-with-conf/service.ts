@@ -1,56 +1,70 @@
-import fs, { read } from "fs";
-import { CHANNEL_CONFIGURATIONS } from "./channel.js";
-import { FileType } from "./type.js";
-import { ChunkWriteStream } from "../utils/chunk-file-stream.js";
+import fs from "fs";
 import moment from "moment";
 import { ulid } from "ulid";
-import { SapFileConversionService } from "./conversion.js";
+import { ChunkWriteStream } from "../utils/chunk-file-stream.js";
 import { pipeToMultipleWritables } from "../utils/pipeline-to-multiple-writables.js";
+import { CHANNEL_CONFIGURATIONS } from "./channel.js";
 import { createConfigurationGetter } from "./config.js";
-import { listFilesInFolder } from "./lister.js";
+import { SapFileConversionService } from "./conversion.js";
 import { convertCostCenterFiles } from "./costcenter.js";
+import { listFilesInFolder } from "./lister.js";
+import { FileType } from "./type.js";
+import { Uploader } from "./upload.js";
+import { getAllCategoryAndBrand } from "./combination.js";
 
 export class SapToGwlWithConfService {
+  sourceFileFolder: string;
+  destinationFileFolder: string;
+  startDate: string = ""; /* YYYYMMDD */
   startTime: string;
   sapFileConversionService: SapFileConversionService;
-  constructor(configJsonPath: string) {
+  uploader: Uploader;
+  constructor(
+    configJsonPath: string,
+    sourceFileFolder: string,
+    destinationFileFolder: string,
+    startDate: string = ""
+  ) {
+    this.sourceFileFolder = sourceFileFolder;
+    this.destinationFileFolder = destinationFileFolder;
+    this.startDate = startDate;
     this.startTime = moment().format("YYYYMMDD_HHmmss");
     const configurationGetter = createConfigurationGetter(configJsonPath);
     this.sapFileConversionService = new SapFileConversionService(
       configurationGetter
     );
+    this.uploader = new Uploader();
   }
-  listFilesInFolder(
-    sourceFileFolder: string,
-    startDate: string = "" /* YYYYMMDD */
-  ) {
-    return listFilesInFolder(sourceFileFolder, startDate);
+  listFilesInFolder() {
+    return listFilesInFolder(this.sourceFileFolder, this.startDate);
   }
-  async executeCostCenterConfig(
-    sourceFileFolder: string,
-    startDate: string = "" /* YYYYMMDD */
-  ): Promise<void> {
+  async executeCostCenterConfig(): Promise<void> {
     convertCostCenterFiles(
-      listFilesInFolder(sourceFileFolder, startDate),
-      `./data/output/COST_CENTER_${this.startTime}.csv`
+      listFilesInFolder(this.sourceFileFolder, this.startDate),
+      `${this.destinationFileFolder}/COST_CENTER_${this.startTime}.csv`
     );
   }
-  async executeSkuConfig(
-    sourceFileFolder: string,
-    startDate: string = "" /* YYYYMMDD */
-  ): Promise<void> {
+  async executeSkuConfig(): Promise<void> {
     const SKU_CONFIG_TYPE = [
       // FileType.ARTICLE,
       FileType.BRAND,
       FileType.CATEGORY,
     ];
-    const files = listFilesInFolder(sourceFileFolder, startDate);
+    const files = listFilesInFolder(this.sourceFileFolder, this.startDate);
+    // files must be correctly ordered
     for (const file of files) {
       const { path, fileType } = file;
       if (SKU_CONFIG_TYPE.includes(fileType)) {
         await this.readAndConvertAndUpload(path, fileType);
       }
     }
+  }
+  async executeSkutMaster(): Promise<void> {
+    await getAllCategoryAndBrand(
+      listFilesInFolder(this.sourceFileFolder, this.startDate),
+      `${this.destinationFileFolder}/CAT_BRN_MASTER_${this.startTime}.csv`,
+      this.sapFileConversionService.confugurationGetter
+    );
   }
   async readAndConvertAndUpload(
     filePath: string,
@@ -67,7 +81,7 @@ export class SapToGwlWithConfService {
         let firstLine = true;
         let sapHeaders: string[];
         return new ChunkWriteStream({
-          path: `./data/output/${this.startTime}/${channel.code}/${fileType}`,
+          path: `${this.destinationFileFolder}/${this.startTime}/${channel.code}/${fileType}`,
           filename: `${moment().format("YYYYMMDDHHmmss")}_${ulid()}`,
           extension: "csv",
           getFileHeader: () => `From: ${filePath}\n` + headers.join(", "),
@@ -88,4 +102,9 @@ export class SapToGwlWithConfService {
     );
     await pipeToMultipleWritables(readStream, writeStreams);
   }
+  // async upload() {
+  //   await this.uploader.upload();
+  //   // for (const channel of channels) {
+  //   // }
+  // }
 }
