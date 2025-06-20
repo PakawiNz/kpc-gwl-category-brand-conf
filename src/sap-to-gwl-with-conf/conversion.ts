@@ -70,6 +70,7 @@ export class SapFileConversionService {
   brandConvert(row: CSVRecord, configurationGetter: ConfigurationGetter) {
     const brandId = normalizeBrandId(row["BRAND_ID"]);
     const brandDesc = normalizeText(row["BRAND_DESCR"]);
+    if (!brandId || !brandDesc) return;
     const [earnable, burnable] =
       configurationGetter(undefined, brandId, undefined) ?? DEFAULT_CONFIG;
     return [brandId, brandDesc, earnable, burnable];

@@ -1,7 +1,8 @@
 import { CHANNEL_CONFIGURATIONS } from "./channel.js";
 import lodash from "lodash";
 import { FileType } from "./type.js";
-import fs from 'fs';
+import fs from "fs";
+import path from "path";
 
 interface GetChannelResponse {
   data: {
@@ -11,11 +12,11 @@ interface GetChannelResponse {
 }
 
 export class Uploader {
-  HOST: string;
-  CLIENT_ID: string;
-  CLIENT_SECRET: string;
-  ENDPOINT_GET_TOKEN: string;
-  channelsMapper?: { [key: string]: string };
+  private HOST: string;
+  private CLIENT_ID: string;
+  private CLIENT_SECRET: string;
+  private ENDPOINT_GET_TOKEN: string;
+  private channelsMapper?: { [key: string]: string };
   constructor() {
     this.HOST = process.env.POWERPASS_OPEN_API_HOST ?? "";
     this.CLIENT_ID = process.env.POWERPASS_OPEN_API_CLIENT_ID ?? "";
@@ -35,7 +36,7 @@ export class Uploader {
     );
   }
 
-  async getToken() {
+  private async getToken() {
     console.log("🔫🔫🔫 get token");
     const response = await fetch(this.ENDPOINT_GET_TOKEN, {
       method: "POST",
@@ -53,7 +54,7 @@ export class Uploader {
     return data;
   }
 
-  async getChannel(
+  private async getChannel(
     accessToken: string,
     codeKeyword: string
   ): Promise<GetChannelResponse> {
@@ -70,15 +71,13 @@ export class Uploader {
     if (!response.ok) {
       const errorData = await response.text();
       console.error("failed:", response.status, errorData);
-      throw new Error(
-        `failed with status ${response.status}: ${errorData}`
-      );
+      throw new Error(`failed with status ${response.status}: ${errorData}`);
     }
     const data = await response.json();
     return data;
   }
 
-  async getProduct(accessToken: string, channelId: string) {
+  private async getProduct(accessToken: string, channelId: string) {
     console.log("🔫🔫🔫 get product");
     const response = await fetch(
       `https://${this.HOST}/admin/channels/${channelId}/products`,
@@ -92,34 +91,129 @@ export class Uploader {
     if (!response.ok) {
       const errorData = await response.text();
       console.error("failed:", response.status, errorData);
-      throw new Error(
-        `failed with status ${response.status}: ${errorData}`
-      );
+      throw new Error(`failed with status ${response.status}: ${errorData}`);
     }
     const data = await response.json();
     console.log(data);
     return data;
   }
 
-  async upload(filePath: string, fileType: FileType) {
+  async uploadAllFiles(filePaths: [string, string, string][]) {
     await this.prepareUpload();
-    // console.log(channelsMapper);
-    //
-    await this.importProductCategory()
+    for (const [channelCode, fileType, filePath] of filePaths) {
+      const accessToken = (await this.getToken())["access_token"];
+      console.log(channelCode, fileType)
+      switch (fileType) {
+        case FileType.CATEGORY:
+          await this.importProductCategory(
+            accessToken,
+            this.channelsMapper![channelCode],
+            filePath
+          );
+          continue;
+        case FileType.BRAND:
+          await this.importProductBrand(
+            accessToken,
+            this.channelsMapper![channelCode],
+            filePath
+          );
+          continue;
+        case FileType.ARTICLE:
+          await this.importProduct(
+            accessToken,
+            this.channelsMapper![channelCode],
+            filePath
+          );
+          continue;
+      }
+    }
   }
 
-  async importProductCategory(
+  private async importProductCategory(
     accessToken: string,
     channelId: string,
     filePath: string
   ) {
-    const file = await fs.readFile(filePath);
+    const fileBuffer = fs.readFileSync(filePath);
     const formData = new FormData();
-    formData.append("file", new Blob([file]));
+    const fileName = path.basename(filePath);
+    formData.append(
+      "file",
+      new Blob([fileBuffer], { type: "text/csv" }),
+      fileName
+    );
 
-    console.log("🔫🔫🔫 import product category");
+    console.log("🔫🔫🔫 import product category", fileName);
     const response = await fetch(
       `https://${this.HOST}/admin/channels/${channelId}/categories/import`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      }
+    );
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Upload failed:", response.status, errorData);
+      throw new Error(
+        `Upload failed with status ${response.status}: ${errorData}`
+      );
+    }
+  }
+
+  private async importProductBrand(
+    accessToken: string,
+    channelId: string,
+    filePath: string
+  ) {
+    const fileBuffer = fs.readFileSync(filePath);
+    const formData = new FormData();
+    const fileName = path.basename(filePath);
+    formData.append(
+      "file",
+      new Blob([fileBuffer], { type: "text/csv" }),
+      fileName
+    );
+
+    console.log("🔫🔫🔫 import product brand", fileName);
+    const response = await fetch(
+      `https://${this.HOST}/admin/channels/${channelId}/brands/import`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      }
+    );
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Upload failed:", response.status, errorData);
+      throw new Error(
+        `Upload failed with status ${response.status}: ${errorData}`
+      );
+    }
+  }
+
+  private async importProduct(
+    accessToken: string,
+    channelId: string,
+    filePath: string
+  ) {
+    const fileBuffer = fs.readFileSync(filePath);
+    const formData = new FormData();
+    const fileName = path.basename(filePath);
+    formData.append(
+      "file",
+      new Blob([fileBuffer], { type: "text/csv" }),
+      fileName
+    );
+
+    console.log("🔫🔫🔫 import product", fileName);
+    const response = await fetch(
+      `https://${this.HOST}/admin/channels/${channelId}/products/import`,
       {
         method: "POST",
         headers: {

@@ -11,6 +11,7 @@ import { listFilesInFolder } from "./lister.js";
 import { FileType } from "./type.js";
 import { Uploader } from "./upload.js";
 import { getAllCategoryAndBrand } from "./combination.js";
+import path from "path";
 
 export class SapToGwlWithConfService {
   sourceFileFolder: string;
@@ -18,7 +19,6 @@ export class SapToGwlWithConfService {
   startDate: string = ""; /* YYYYMMDD */
   startTime: string;
   sapFileConversionService: SapFileConversionService;
-  uploader: Uploader;
   constructor(
     configJsonPath: string,
     sourceFileFolder: string,
@@ -33,7 +33,6 @@ export class SapToGwlWithConfService {
     this.sapFileConversionService = new SapFileConversionService(
       configurationGetter
     );
-    this.uploader = new Uploader();
   }
   listFilesInFolder() {
     return listFilesInFolder(this.sourceFileFolder, this.startDate);
@@ -59,7 +58,7 @@ export class SapToGwlWithConfService {
       }
     }
   }
-  async executeSkutMaster(): Promise<void> {
+  async executeSkuMaster(): Promise<void> {
     await getAllCategoryAndBrand(
       listFilesInFolder(this.sourceFileFolder, this.startDate),
       `${this.destinationFileFolder}/CAT_BRN_MASTER_${this.startTime}.csv`,
@@ -102,9 +101,29 @@ export class SapToGwlWithConfService {
     );
     await pipeToMultipleWritables(readStream, writeStreams);
   }
-  // async upload() {
-  //   await this.uploader.upload();
-  //   // for (const channel of channels) {
-  //   // }
-  // }
+  async executeUploadMaster(folderPath: string) {
+    const uploader = new Uploader();
+    const channelCodes = CHANNEL_CONFIGURATIONS.map((channel) => channel.code);
+    const fileTypes = Object.values(FileType) as string[];
+    const allFiles: [string, string, string][] = [];
+    fs.readdirSync(folderPath).forEach((channelCode) => {
+      if (channelCodes.includes(channelCode)) {
+        fs.readdirSync(path.join(folderPath, channelCode)).forEach(
+          (fileType) => {
+            if (fileTypes.includes(fileType)) {
+              fs.readdirSync(path.join(folderPath, channelCode, fileType)).forEach(
+                (filePath) => {
+                  if (filePath.toLowerCase().endsWith(".csv")) {
+                    const fullPath = path.join(folderPath, channelCode, fileType, filePath)
+                    allFiles.push([channelCode, fileType, fullPath]);
+                  }
+                }
+              );
+            }
+          }
+        );
+      }
+    });
+    uploader.uploadAllFiles(allFiles)
+  }
 }
