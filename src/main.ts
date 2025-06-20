@@ -27,7 +27,7 @@ async function main() {
   // await service.executeSkuConfig();
   // await service.executeCostCenterConfig();
   // await service.executeSkuMaster()
-  await service.executeUploadMaster(
+  await service.executeUploadSkuConfig(
     path.join(DESTINATION_FOLDER, OVERRIDE_FOLDER_NAME || service.startTime)
   );
   console.log("complete");

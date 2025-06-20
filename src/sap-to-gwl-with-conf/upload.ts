@@ -98,7 +98,7 @@ export class Uploader {
     return data;
   }
 
-  async uploadAllFiles(filePaths: [string, string, string][]) {
+  async uploadSkuConfig(filePaths: [string, string, string][]) {
     await this.prepareUpload();
     for (const [channelCode, fileType, filePath] of filePaths) {
       const accessToken = (await this.getToken())["access_token"];

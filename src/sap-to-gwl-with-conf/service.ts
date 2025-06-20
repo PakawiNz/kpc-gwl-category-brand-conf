@@ -37,10 +37,11 @@ export class SapToGwlWithConfService {
   listFilesInFolder() {
     return listFilesInFolder(this.sourceFileFolder, this.startDate);
   }
-  async executeCostCenterConfig(): Promise<void> {
-    convertCostCenterFiles(
+  async executeSkuMaster(): Promise<void> {
+    await getAllCategoryAndBrand(
       listFilesInFolder(this.sourceFileFolder, this.startDate),
-      `${this.destinationFileFolder}/COST_CENTER_${this.startTime}.csv`
+      `${this.destinationFileFolder}/CAT_BRN_MASTER_${this.startTime}.csv`,
+      this.sapFileConversionService.confugurationGetter
     );
   }
   async executeSkuConfig(): Promise<void> {
@@ -57,13 +58,6 @@ export class SapToGwlWithConfService {
         await this.readAndConvertAndUpload(path, fileType);
       }
     }
-  }
-  async executeSkuMaster(): Promise<void> {
-    await getAllCategoryAndBrand(
-      listFilesInFolder(this.sourceFileFolder, this.startDate),
-      `${this.destinationFileFolder}/CAT_BRN_MASTER_${this.startTime}.csv`,
-      this.sapFileConversionService.confugurationGetter
-    );
   }
   async readAndConvertAndUpload(
     filePath: string,
@@ -101,7 +95,7 @@ export class SapToGwlWithConfService {
     );
     await pipeToMultipleWritables(readStream, writeStreams);
   }
-  async executeUploadMaster(folderPath: string) {
+  async executeUploadSkuConfig(folderPath: string) {
     const uploader = new Uploader();
     const channelCodes = CHANNEL_CONFIGURATIONS.map((channel) => channel.code);
     const fileTypes = Object.values(FileType) as string[];
@@ -124,6 +118,15 @@ export class SapToGwlWithConfService {
         );
       }
     });
-    uploader.uploadAllFiles(allFiles)
+    uploader.uploadSkuConfig(allFiles)
+  }
+  async executeCostCenterConfig(): Promise<void> {
+    convertCostCenterFiles(
+      listFilesInFolder(this.sourceFileFolder, this.startDate),
+      `${this.destinationFileFolder}/COST_CENTER_${this.startTime}.csv`
+    );
+  }
+  async executeUploadCostCenterConfig() {
+    
   }
 }
