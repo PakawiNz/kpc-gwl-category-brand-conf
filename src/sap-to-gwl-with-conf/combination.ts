@@ -59,11 +59,11 @@ export async function getAllCategoryAndBrand(
     });
   }
   const jsonContent = (configurationGetter as any).jsonContent;
+  const combii = [...combi]
+  combii.sort()
 
   const writeStream = fs.createWriteStream(writePath);
   writeStream.write("CATEGORY_ID,BRAND_ID\n");
-  const combii = [...combi]
-  combii.sort()
   combii.forEach((l) => {
     const line = l as string;
     const [category, brand] = line.split("|");
