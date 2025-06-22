@@ -1,3 +1,4 @@
+import path from "path";
 import { getCSV } from "../utils/read-csv.js";
 import { FileType, PathWithFileType } from "./type.js";
 import fs from "fs";
@@ -43,7 +44,7 @@ export async function convertCostCenterFiles(
   ];
   const costCenters = [];
   for (const record of getCSV(mapped[FileType.COST_CENTER], "|")) {
-    if (!record["KOSTL"]) continue
+    if (!record["KOSTL"]) continue;
     costCenters.push([
       companyMapper[record["KOKRS"]][0],
       companyMapper[record["KOKRS"]][1],
@@ -54,8 +55,11 @@ export async function convertCostCenterFiles(
       //
     ]);
   }
-  fs.writeFileSync(
-    writePath,
-    [headers, ...costCenters].map((row) => row.join(",")).join("\n")
-  );
+  const contents = [
+    [path.basename(mapped[FileType.COST_CENTER])],
+    headers,
+    ...costCenters,
+  ];
+
+  fs.writeFileSync(writePath, contents.map((row) => row.join(",")).join("\n"));
 }

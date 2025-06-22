@@ -4,7 +4,7 @@ import {
   normalizeArticleId,
   normalizeBrandId,
   normalizeCategoryId,
-} from "../conf-xlsx-to-json/transform.js";
+} from "../sap-to-gwl-with-conf/md-master-xlsx-to-json.js";
 import fs from "fs";
 import { read_csv } from "../utils/read-csv.js";
 import { Any } from "../type.js";

@@ -1,4 +1,4 @@
-import { CHANNEL_CONFIGURATIONS } from "./channel.js";
+import { CHANNEL_CONFIGURATIONS } from "./channels-master.js";
 import lodash from "lodash";
 import { FileType } from "./type.js";
 import fs from "fs";
@@ -102,7 +102,7 @@ export class Uploader {
     await this.prepareUpload();
     for (const [channelCode, fileType, filePath] of filePaths) {
       const accessToken = (await this.getToken())["access_token"];
-      console.log(channelCode, fileType)
+      console.log(channelCode, fileType);
       switch (fileType) {
         case FileType.CATEGORY:
           await this.importProductCategory(
@@ -214,6 +214,41 @@ export class Uploader {
     console.log("🔫🔫🔫 import product", fileName);
     const response = await fetch(
       `https://${this.HOST}/admin/channels/${channelId}/products/import`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      }
+    );
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Upload failed:", response.status, errorData);
+      throw new Error(
+        `Upload failed with status ${response.status}: ${errorData}`
+      );
+    }
+  }
+
+  async uploadCostCenterConfig(filePath: string) {
+    const token = (await this.getToken())["access_token"];
+    await this.importCostCenter(token, filePath);
+  }
+
+  private async importCostCenter(accessToken: string, filePath: string) {
+    const fileBuffer = fs.readFileSync(filePath);
+    const formData = new FormData();
+    const fileName = path.basename(filePath);
+    formData.append(
+      "file",
+      new Blob([fileBuffer], { type: "text/csv" }),
+      fileName
+    );
+
+    console.log("🔫🔫🔫 import product", fileName);
+    const response = await fetch(
+      `https://${this.HOST}/admin/cost-centers/import`,
       {
         method: "POST",
         headers: {

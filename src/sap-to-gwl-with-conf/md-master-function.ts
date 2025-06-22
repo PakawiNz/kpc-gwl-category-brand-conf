@@ -9,6 +9,9 @@ export interface ConfigurationMapper {
   CAT: SubConfigurationMapper;
   ["CAT|BRN"]: SubConfigurationMapper;
 }
+export interface CompanyConfigurationMapper {
+  [key: string]: ConfigurationMapper;
+}
 
 export const DEFAULT_CONFIG: EarnBurnConfiguration = ["N", "N", 0];
 
@@ -20,10 +23,10 @@ export function convertConfig(config: any): EarnBurnConfiguration {
   ];
 }
 
-export function createConfigurationGetter(configJsonPath: string) {
+export function createConfigurationGetter(configJsonPath: string, company: string) {
   const jsonContent = JSON.parse(
     fs.readFileSync(configJsonPath, "utf8")
-  ) as ConfigurationMapper;
+  ) as CompanyConfigurationMapper;
   const fn = (
     category?: string,
     brand?: string,
@@ -35,11 +38,11 @@ export function createConfigurationGetter(configJsonPath: string) {
       article !== undefined
     ) {
       const config =
-        jsonContent["SKU"][article] ||
-        jsonContent["CAT|BRN"][`${category}|${brand}`];
+        jsonContent[company]["SKU"][article] ||
+        jsonContent[company]["CAT|BRN"][`${category}|${brand}`];
       return convertConfig(config);
     } else if (category !== undefined) {
-      const config = jsonContent["CAT"][category] ?? DEFAULT_CONFIG;
+      const config = jsonContent[company]["CAT"][category] ?? DEFAULT_CONFIG;
       return convertConfig(config);
     } else if (brand !== undefined) {
       return DEFAULT_CONFIG;
@@ -47,6 +50,6 @@ export function createConfigurationGetter(configJsonPath: string) {
       throw "invalid configuration";
     }
   };
-  fn.jsonContent = jsonContent;
+  fn.jsonContent = jsonContent[company];
   return fn;
 }

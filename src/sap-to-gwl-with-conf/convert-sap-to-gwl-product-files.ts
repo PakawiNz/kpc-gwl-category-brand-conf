@@ -1,6 +1,16 @@
-import { ChannelConfiguration } from "./channel.js";
-import { DEFAULT_CONFIG } from "./config.js";
+import path from "path";
+import { ChunkWriteStream } from "../utils/chunk-file-stream.js";
+import {
+  CHANNEL_CONFIGURATIONS,
+  ChannelConfiguration,
+  COMPANY,
+} from "./channels-master.js";
+import { DEFAULT_CONFIG } from "./md-master-function.js";
 import { ConfigurationGetter, CSVRecord, FileType } from "./type.js";
+import fs from "fs";
+import { timestampString } from "../utils/timestamp-string.js";
+import { ulid } from "ulid";
+import { pipeToMultipleWritables } from "../utils/pipeline-to-multiple-writables.js";
 
 export function normalizeArticleId(id: string): string {
   return `${id ?? ""}`.trim().replace(/[-_]/g, "");
@@ -109,14 +119,16 @@ export class SapFileConversionService {
     configurationGetter: ConfigurationGetter
   ) {
     const sku = normalizeArticleId(row["MATNR"]);
+    const trimmedSku = sku.replace(/^0+/, "");
     const categoryId = normalizeCategoryId(row["MATKL"]).substring(0, 3);
     const productName = normalizeText(row["MAKTX"]);
     const brandCode = normalizeBrandId(row["BRAND_ID"]);
     if (!sku || !categoryId || !brandCode) return;
-    const [earnable, burnable, earnRate] =
-      configurationGetter(categoryId, brandCode, sku) ?? DEFAULT_CONFIG;
+    const config = configurationGetter(categoryId, brandCode, trimmedSku);
+    if (!config) return;
+    const [earnable, burnable, earnRate] = config;
     return [
-      trimZero ? sku.replace(/^0+/, "") : sku,
+      trimZero ? trimmedSku : sku,
       productName,
       categoryId,
       brandCode,
@@ -126,4 +138,77 @@ export class SapFileConversionService {
       earnRate.toString(),
     ];
   }
+}
+
+export async function readAndConvertSkuConfigFiles(
+  srcFilePath: string,
+  dstFileFolder: string,
+  fileType: FileType,
+  services: Record<COMPANY, SapFileConversionService>
+): Promise<void> {
+  const readStream = fs.createReadStream(srcFilePath, { encoding: "utf-8" });
+  const writeStreams = await Promise.all(
+    CHANNEL_CONFIGURATIONS.map(async (channel) => {
+      const service = services[channel.company];
+      const { headers, convert } = service.getHeaderAndConverter(
+        fileType,
+        channel
+      );
+      let firstLine = true;
+      let sapHeaders: string[];
+      return new ChunkWriteStream({
+        path: path.join(dstFileFolder, channel.code, fileType),
+        filename: `${timestampString()}_${ulid()}`,
+        extension: "csv",
+        getFileHeader: () => `From: ${srcFilePath}\n` + headers.join(", "),
+        transformLine(line: string) {
+          if (firstLine) {
+            firstLine = false;
+            sapHeaders = line.split("|");
+          } else {
+            const splittedLine = line.split("|");
+            const record = Object.fromEntries(
+              sapHeaders.map((header, i) => [header, splittedLine[i]])
+            );
+            return convert(record)?.join(",");
+          }
+        },
+      });
+    })
+  );
+  await pipeToMultipleWritables(readStream, writeStreams);
+}
+
+export async function listConvertedSkuConfigs(
+  folderPath: string,
+  includedFileTypes: FileType[]
+) {
+  const SKU_CONFIG_TYPE = [FileType.ARTICLE, FileType.BRAND, FileType.CATEGORY];
+  const channelCodes = CHANNEL_CONFIGURATIONS.map((channel) => channel.code);
+  const fileTypes = includedFileTypes.filter((ft) =>
+    SKU_CONFIG_TYPE.includes(ft)
+  ) as string[];
+  const allFiles: [string, string, string][] = [];
+  fs.readdirSync(folderPath).forEach((channelCode) => {
+    if (channelCodes.includes(channelCode)) {
+      fs.readdirSync(path.join(folderPath, channelCode)).forEach((fileType) => {
+        if (fileTypes.includes(fileType)) {
+          fs.readdirSync(path.join(folderPath, channelCode, fileType)).forEach(
+            (filePath) => {
+              if (filePath.toLowerCase().endsWith(".csv")) {
+                const fullPath = path.join(
+                  folderPath,
+                  channelCode,
+                  fileType,
+                  filePath
+                );
+                allFiles.push([channelCode, fileType, fullPath]);
+              }
+            }
+          );
+        }
+      });
+    }
+  });
+  return allFiles;
 }
