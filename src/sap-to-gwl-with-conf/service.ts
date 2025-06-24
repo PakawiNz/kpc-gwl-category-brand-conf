@@ -46,7 +46,7 @@ export class SapToGwlWithConfService {
       )
     );
   }
-  async executeSkuConfig(): Promise<string> {
+  async executeSkuConfig(includedFileTypes?: FileType[]): Promise<string> {
     const SKU_CONFIG_TYPE = [
       FileType.ARTICLE,
       FileType.BRAND,
@@ -56,7 +56,10 @@ export class SapToGwlWithConfService {
     // files must be correctly ordered
     for (const file of files) {
       const { path, fileType } = file;
-      if (SKU_CONFIG_TYPE.includes(fileType)) {
+      if (
+        SKU_CONFIG_TYPE.includes(fileType) &&
+        (!includedFileTypes || includedFileTypes.includes(fileType))
+      ) {
         await readAndConvertSkuConfigFiles(
           path,
           `${this.destinationFileFolder}/${this.startTime}`,
@@ -72,7 +75,7 @@ export class SapToGwlWithConfService {
     includedFileTypes: FileType[]
   ) {
     const uploader = new Uploader();
-    uploader.uploadSkuConfig(
+    await uploader.uploadSkuConfig(
       await listConvertedSkuConfigs(folderPath, includedFileTypes)
     );
   }

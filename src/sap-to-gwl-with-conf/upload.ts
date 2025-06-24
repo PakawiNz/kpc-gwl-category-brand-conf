@@ -3,6 +3,7 @@ import lodash from "lodash";
 import { FileType } from "./type.js";
 import fs from "fs";
 import path from "path";
+import timer from "../utils/timer.js";
 
 interface GetChannelResponse {
   data: {
@@ -101,6 +102,7 @@ export class Uploader {
   async uploadSkuConfig(filePaths: [string, string, string][]) {
     await this.prepareUpload();
     for (const [channelCode, fileType, filePath] of filePaths) {
+      await timer(60000)
       const accessToken = (await this.getToken())["access_token"];
       console.log(channelCode, fileType);
       switch (fileType) {
@@ -232,6 +234,7 @@ export class Uploader {
   }
 
   async uploadCostCenterConfig(filePath: string) {
+    await timer(60000)
     const token = (await this.getToken())["access_token"];
     await this.importCostCenter(token, filePath);
   }

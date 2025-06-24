@@ -9,16 +9,17 @@ const SKU_CONFIG_JSON_PATH =
 const SOURCE_FOLDER =
   "/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/kpg-sap-s3-outbound-prod";
 const DESTINATION_FOLDER =
-  "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/";
+  "/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/gwl-category-brand-master";
+// const DESTINATION_FOLDER =
+//   "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/";
 
 import { convertXlsxConfigurationToJson } from "./sap-to-gwl-with-conf/md-master-xlsx-to-json.js";
 import { SapToGwlWithConfService } from "./sap-to-gwl-with-conf/service.js";
 import { FileType } from "./sap-to-gwl-with-conf/type.js";
-import { ulid } from "ulid";
 
 async function main() {
   // ================================================ transform MD master
-  // convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, SKU_CONFIG_JSON_PATH);
+  convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, SKU_CONFIG_JSON_PATH);
 
   // ================================================
   const service = new SapToGwlWithConfService(
@@ -29,19 +30,23 @@ async function main() {
   );
 
   // ================================================ prepare master for MD
-  await service.executeSkuMaster()
+  // await service.executeSkuMaster()
 
   // ================================================ build and upload sku configs
-  // const skuFolder = await service.executeSkuConfig();
-  // await service.executeUploadSkuConfig(skuFolder, [
-  //   FileType.ARTICLE,
-  //   FileType.CATEGORY,
-  //   FileType.BRAND,
-  // ]);
+  const skuFolder = await service.executeSkuConfig([
+    // FileType.ARTICLE,
+    FileType.CATEGORY,
+    FileType.BRAND,
+  ]);
+  await service.executeUploadSkuConfig(skuFolder, [
+    // FileType.ARTICLE,
+    FileType.CATEGORY,
+    FileType.BRAND,
+  ]);
 
   // ================================================ build and upload cost center
-  // const costCenterCsv = await service.executeCostCenterConfig();
-  // await service.executeUploadCostCenterConfig(costCenterCsv);
+  const costCenterCsv = await service.executeCostCenterConfig();
+  await service.executeUploadCostCenterConfig(costCenterCsv);
   
   // ================================================
   console.log("complete");
