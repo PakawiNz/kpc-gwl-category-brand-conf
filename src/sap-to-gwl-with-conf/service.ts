@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import { timestampString } from "../utils/timestamp-string.js";
 import { buildCompanyMap, COMPANY } from "./channels-master.js";
 import { convertCostCenterFiles as readAndConvertCostCenterFile } from "./convert-sap-to-gwl-costcenter-file.js"; // Corrected import path
@@ -76,7 +77,12 @@ export class SapToGwlWithConfService {
     );
   }
   async executeCostCenterConfig(): Promise<string> {
-    const csvfilePath = `${this.destinationFileFolder}/${this.startTime}/COST_CENTER_${this.startTime}.csv`;
+    const csvfilePath = path.join(
+      this.destinationFileFolder,
+      this.startTime,
+      `COST_CENTER_${this.startTime}.csv`
+    );
+    fs.mkdirSync(path.dirname(csvfilePath), { recursive: true });
     readAndConvertCostCenterFile(
       listFilesInFolder(this.sourceFileFolder, this.startDate),
       csvfilePath

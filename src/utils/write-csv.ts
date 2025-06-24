@@ -16,11 +16,15 @@ export function toCSVRecord(row: any[], delimit = ",") {
   );
 }
 
-export function rowsToFileCSV(filePath: string, rows: any[]) {
+export function rowsToFileCSV(filePath: string, rows: any[], escaped = false) {
   const writeStream = fs.createWriteStream(filePath);
   rows.forEach((row) => {
     if (row) {
-      writeStream.write(toCSVRecord(row));
+      if (escaped) {
+        writeStream.write(toCSVRecord(row));
+      } else {
+        writeStream.write(row.join(",") + "\n");
+      }
     }
   });
   writeStream.end();

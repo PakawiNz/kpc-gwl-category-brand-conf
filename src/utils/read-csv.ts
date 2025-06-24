@@ -11,7 +11,7 @@ import { Any } from "../type.js";
  * @returns A Transform stream that emits objects representing each row.
  * @throws Error if the file cannot be read.
  */
-export function read_csv(filePath: string): Transform {
+export function getCSVReadStream(filePath: string, delimit=","): Transform {
   const transform = new Transform({
     objectMode: true,
     transform(chunk, encoding, callback) {
@@ -43,7 +43,7 @@ export function read_csv(filePath: string): Transform {
       for await (const line of rl) {
         if (isFirstLine) {
           headers = line
-            .split(",")
+            .split(delimit)
             .map((header) =>
               header
                 .trim()
@@ -55,11 +55,17 @@ export function read_csv(filePath: string): Transform {
           continue;
         }
 
-        // Split by comma but respect quotes
+        // Split by delimiter but respect quotes
+        // Escape special characters in delimiter for use in regex
+        const escapedDelimit = delimit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(
+          `(?:^|${escapedDelimit})("(?:[^"]*(?:""[^"]*)*)"|[^${escapedDelimit}]*)`,
+          "g"
+        );
         const values =
           line
-            .match(/(?:^|,)("(?:[^"]*(?:""[^"]*)*)"|[^,]*)/g)
-            ?.map((val) => val.replace(/^,/, "")) // Remove leading comma
+            .match(regex)
+            ?.map((val) => val.replace(new RegExp(`^${escapedDelimit}`), "")) // Remove leading delimiter
             ?.map((val) => {
               if (val.startsWith('"') && val.endsWith('"')) {
                 return val.slice(1, -1).replace(/""/g, '"'); // Remove quotes and handle escaped quotes
@@ -69,16 +75,7 @@ export function read_csv(filePath: string): Transform {
 
         const row: Any = {};
         headers.forEach((header, index) => {
-          let value = values[index] || "";
-          // Try to parse JSON if the value looks like a JSON string
-          if (value.startsWith("[") || value.startsWith("{")) {
-            try {
-              value = JSON.parse(value);
-            } catch (e) {
-              // Keep as string if parsing fails
-            }
-          }
-          row[header] = value;
+          row[header] = values[index] || "";
         });
         transform.push(row);
       }

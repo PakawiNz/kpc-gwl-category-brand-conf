@@ -22,7 +22,9 @@ export function normalizeCategoryId(id: string): string {
   return `${id ?? ""}`.trim().toLowerCase().replace(/[-_]/g, ""); //Handle case _ , - (PAR_001 => PAR-001 = Dup);
 }
 export function normalizeText(text: string): string {
-  return `${text ?? ""}`.trim().replace(",", " ");
+  text = `${text ?? ""}`
+  text = text.trim().replace(/"/g, '""')
+  return `"${text}"`;
 }
 
 export class SapFileConversionService {

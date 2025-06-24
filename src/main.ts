@@ -14,34 +14,35 @@ const DESTINATION_FOLDER =
 import { convertXlsxConfigurationToJson } from "./sap-to-gwl-with-conf/md-master-xlsx-to-json.js";
 import { SapToGwlWithConfService } from "./sap-to-gwl-with-conf/service.js";
 import { FileType } from "./sap-to-gwl-with-conf/type.js";
+import { ulid } from "ulid";
 
 async function main() {
   // ================================================ transform MD master
-  convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, SKU_CONFIG_JSON_PATH);
+  // convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, SKU_CONFIG_JSON_PATH);
 
   // ================================================
   const service = new SapToGwlWithConfService(
     SKU_CONFIG_JSON_PATH,
     SOURCE_FOLDER,
-    DESTINATION_FOLDER,
-    '20250617'
+    DESTINATION_FOLDER
+    // '20250617'
   );
 
   // ================================================ prepare master for MD
-  // await service.executeSkuMaster()
+  await service.executeSkuMaster()
 
   // ================================================ build and upload sku configs
-  const skuFolder = await service.executeSkuConfig();
-  await service.executeUploadSkuConfig(skuFolder, [
-    FileType.ARTICLE,
-    FileType.CATEGORY,
-    FileType.BRAND,
-  ]);
+  // const skuFolder = await service.executeSkuConfig();
+  // await service.executeUploadSkuConfig(skuFolder, [
+  //   FileType.ARTICLE,
+  //   FileType.CATEGORY,
+  //   FileType.BRAND,
+  // ]);
 
   // ================================================ build and upload cost center
-  const costCenterCsv = await service.executeCostCenterConfig();
-  await service.executeUploadCostCenterConfig(costCenterCsv);
-
+  // const costCenterCsv = await service.executeCostCenterConfig();
+  // await service.executeUploadCostCenterConfig(costCenterCsv);
+  
   // ================================================
   console.log("complete");
 }

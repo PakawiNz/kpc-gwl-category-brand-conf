@@ -45,7 +45,8 @@ export async function convertCostCenterFiles(
   const costCenters = [];
   for (const record of getCSV(mapped[FileType.COST_CENTER], "|")) {
     if (!record["KOSTL"]) continue;
-    costCenters.push([
+    if (isNaN(Number(record["KOSTL"]))) continue; 
+       costCenters.push([
       companyMapper[record["KOKRS"]][0],
       companyMapper[record["KOKRS"]][1],
       record["GSBER"],

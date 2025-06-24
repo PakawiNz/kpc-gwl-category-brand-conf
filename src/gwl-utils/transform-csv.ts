@@ -6,7 +6,7 @@ import {
   normalizeCategoryId,
 } from "../sap-to-gwl-with-conf/md-master-xlsx-to-json.js";
 import fs from "fs";
-import { read_csv } from "../utils/read-csv.js";
+import { getCSVReadStream } from "../utils/read-csv.js";
 import { Any } from "../type.js";
 
 function formatCsvValue(value: any): string {
@@ -30,7 +30,7 @@ export function transformArticleMaster(
   normalizedJsonObject: ConfigurationMapper,
   csvPath: string
 ) {
-  const csvStream = read_csv(csvPath);
+  const csvStream = getCSVReadStream(csvPath);
   const headers = [
     "SKU no.",
     "Product Name",
@@ -86,7 +86,7 @@ export function transformCategoryMaster(
   normalizedJsonObject: ConfigurationMapper,
   csvPath: string
 ) {
-  const csvStream = read_csv(csvPath);
+  const csvStream = getCSVReadStream(csvPath);
   const headers = [
     "Product Category ID",
     "Product Category Name",
@@ -131,7 +131,7 @@ export function transformBrandMaster(
   normalizedJsonObject: ConfigurationMapper,
   csvPath: string
 ) {
-  const csvStream = read_csv(csvPath);
+  const csvStream = getCSVReadStream(csvPath);
   const headers = [
     "Brand Code",
     "Brand Name",
