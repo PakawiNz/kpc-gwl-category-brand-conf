@@ -40,14 +40,13 @@ export function createConfigurationGetter(configJsonPath: string, company: strin
       const config =
         jsonContent[company]["SKU"][article] ||
         jsonContent[company]["CAT|BRN"][`${category}|${brand}`];
-      return convertConfig(config);
+      if (!jsonContent[company]["CAT"][category]) return
+      else return convertConfig(config);
     } else if (category !== undefined) {
       const config = jsonContent[company]["CAT"][category] ?? DEFAULT_CONFIG;
       return convertConfig(config);
     } else if (brand !== undefined) {
       return DEFAULT_CONFIG;
-    } else {
-      throw "invalid configuration";
     }
   };
   fn.jsonContent = jsonContent[company];
