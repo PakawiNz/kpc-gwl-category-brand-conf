@@ -101,10 +101,11 @@ function normalizeCategoryAndBrandRule(
         brandMaster || //
         normalizeBrandId(item[COLUMN_BRAND]);
 
-      const companies: COMPANY[] =
-        categoryMaster || brandMaster
-          ? Object.values(COMPANY)
-          : item[COLUMN_COMPANY].split(";").map(normalizeCompany);
+      const companies: COMPANY[] = Object.values(COMPANY);
+      // const companies: COMPANY[] =
+      //   categoryMaster || brandMaster
+      //     ? Object.values(COMPANY)
+      //     : item[COLUMN_COMPANY].split(";").map(normalizeCompany);
 
       try {
         const keys = (() => {
@@ -243,14 +244,15 @@ export function convertXlsxConfigurationToJson(
   );
 
   const [normalizedJsonObject, errors] =
-  normalizeCategoryAndBrandRule(jsonObject);
-  
+    normalizeCategoryAndBrandRule(jsonObject);
+
   writeToFile(
     [folderPath, "output", baseName + ".norm.json"],
     normalizedJsonObject
   );
+  const errorPath = [folderPath, "output", baseName + `.error.${timestampString()}.txt`]
   writeToFile(
-    [folderPath, "output", baseName + `.error.${timestampString()}.txt`],
+    errorPath,
     errors.join("\n")
   );
   writeToFile(
@@ -265,4 +267,6 @@ export function convertXlsxConfigurationToJson(
   if (jsonPath) {
     writeToFile([jsonPath], normalizedJsonObject);
   }
+
+  if (errors.length) throw `There is some errors in master file.\n${path.join(...errorPath)}`
 }

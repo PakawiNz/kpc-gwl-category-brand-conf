@@ -1,9 +1,10 @@
 import path from "path";
-import fs from "fs";
+import fs, { createWriteStream } from "fs";
 import { timestampString } from "../utils/timestamp-string.js";
 import { buildCompanyMap, COMPANY } from "./channels-master.js";
 import { convertCostCenterFiles as readAndConvertCostCenterFile } from "./convert-sap-to-gwl-costcenter-file.js"; // Corrected import path
 import {
+  counters,
   getConversionWritables,
   listConvertedSkuConfigs,
   SapFileConversionService,
@@ -88,6 +89,14 @@ export class SapToGwlWithConfService {
     for (const writables of Object.values(fileTypesWritable)) {
       closeAllWritables(writables);
     }
+
+    const writeStream = createWriteStream(path.join(this.destinationFileFolder, this.startTime, 'report.csv'))
+    for (const channel in counters) {
+      for (const pair in counters[channel]) {
+        writeStream.write(`${channel}|${pair}|${counters[channel][pair]}\n`)
+      }
+    }
+    writeStream.close()
 
     return path.join(this.destinationFileFolder, this.startTime);
   }

@@ -13,16 +13,20 @@ import { ulid } from "ulid";
 import { Writable } from "stream";
 
 const INCLUSION_FILE = "data/sku-configuration-prod/INCLUSION-LIST.txt";
-const INCLUSION_LIST =
-  fs.existsSync(INCLUSION_FILE) &&
-  new Set(
+const INCLUSION_LIST = (() => {
+  if (!fs.existsSync(INCLUSION_FILE)) return;
+  const set = new Set(
     fs
       .readFileSync(INCLUSION_FILE, "utf8")
       .split("\n")
       .filter((a) => a.trim())
+      .map((a) => a.toUpperCase())
   );
+  if (set.size) return set;
+})();
 
 function isExcluded(category: string, brand: string, article: string): boolean {
+  if (!category.match(/^\d{3}$/)) return true;
   if (!INCLUSION_LIST) return false;
   if (INCLUSION_LIST.has(`${category}|${brand}`)) return false;
   if (INCLUSION_LIST.has(`${category}|${brand}|${article}`)) return false;
@@ -160,12 +164,14 @@ export class SapFileConversionService {
   }
 }
 
+export const counters: { [key: string]: { [key: string]: number } } = {};
 export function getConversionWritables(
   dstFileFolder: string,
   fileType: FileType,
   services: Record<COMPANY, SapFileConversionService>
 ): Writable[] {
   return CHANNEL_CONFIGURATIONS.map((channel) => {
+    counters[channel.code] = {};
     const service = services[channel.company];
     const { headers, convert } = service.getHeaderAndConverter(
       fileType,
@@ -187,7 +193,15 @@ export function getConversionWritables(
           const record = Object.fromEntries(
             sapHeaders.map((header, i) => [header, splittedLine[i]])
           );
-          return convert(record)?.join(",");
+          const row = convert(record);
+          if (row) {
+            if (fileType == FileType.ARTICLE) {
+              const pair = `${row[2]}`;
+              counters[channel.code][pair] =
+                (counters[channel.code][pair] ?? 0) + 1;
+            }
+            return row.join(",");
+          }
         }
       },
     });
