@@ -12,10 +12,21 @@ import { timestampString } from "../utils/timestamp-string.js";
 import { ulid } from "ulid";
 import { Writable } from "stream";
 
+const INCLUSION_FILE = "data/sku-configuration-prod/INCLUSION-LIST.txt";
+const INCLUSION_LIST =
+  fs.existsSync(INCLUSION_FILE) &&
+  new Set(
+    fs
+      .readFileSync(INCLUSION_FILE, "utf8")
+      .split("\n")
+      .filter((a) => a.trim())
+  );
+
 function isExcluded(category: string, brand: string, article: string): boolean {
-  // if (category == "221" && brand == "GUC") return false;
-  // return true;
-  return false;
+  if (!INCLUSION_LIST) return false;
+  if (INCLUSION_LIST.has(`${category}|${brand}`)) return false;
+  if (INCLUSION_LIST.has(`${category}|${brand}|${article}`)) return false;
+  return true;
 }
 
 export function normalizeArticleId(id: string): string {

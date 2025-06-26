@@ -76,6 +76,7 @@ export class SapToGwlWithConfService {
       const { path, fileType } = file;
       if (includedFileTypes.includes(fileType)) {
         const readStream = fs.createReadStream(path, { encoding: "utf-8" });
+        console.log('Reading file', path)
         await pipeToMultipleWritables(
           readStream,
           fileTypesWritable[fileType]!,
