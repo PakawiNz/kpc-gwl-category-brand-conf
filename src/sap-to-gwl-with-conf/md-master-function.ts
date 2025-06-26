@@ -23,7 +23,10 @@ export function convertConfig(config: any): EarnBurnConfiguration {
   ];
 }
 
-export function createConfigurationGetter(configJsonPath: string, company: string) {
+export function createConfigurationGetter(
+  configJsonPath: string,
+  company: string
+) {
   const jsonContent = JSON.parse(
     fs.readFileSync(configJsonPath, "utf8")
   ) as CompanyConfigurationMapper;
@@ -40,7 +43,7 @@ export function createConfigurationGetter(configJsonPath: string, company: strin
       const config =
         jsonContent[company]["SKU"][article] ||
         jsonContent[company]["CAT|BRN"][`${category}|${brand}`];
-      if (!jsonContent[company]["CAT"][category]) return
+      if (!jsonContent[company]["CAT"][category]) return;
       else return convertConfig(config);
     } else if (category !== undefined) {
       const config = jsonContent[company]["CAT"][category] ?? DEFAULT_CONFIG;

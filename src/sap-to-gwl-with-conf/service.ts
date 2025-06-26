@@ -4,8 +4,8 @@ import { timestampString } from "../utils/timestamp-string.js";
 import { buildCompanyMap, COMPANY } from "./channels-master.js";
 import { convertCostCenterFiles as readAndConvertCostCenterFile } from "./convert-sap-to-gwl-costcenter-file.js"; // Corrected import path
 import {
+  getConversionWritables,
   listConvertedSkuConfigs,
-  readAndConvertSkuConfigFiles,
   SapFileConversionService,
 } from "./convert-sap-to-gwl-product-files.js";
 import { createConfigurationGetter } from "./md-master-function.js";
@@ -13,6 +13,11 @@ import { getAllCategoryAndBrand } from "./md-master-initlize.js";
 import { listFilesInFolder } from "./sap-master-listing.js";
 import { FileType } from "./type.js";
 import { Uploader } from "./upload.js";
+import { Writable } from "stream";
+import {
+  closeAllWritables,
+  pipeToMultipleWritables,
+} from "../utils/pipeline-to-multiple-writables.js";
 
 export class SapToGwlWithConfService {
   sourceFileFolder: string;
@@ -52,22 +57,37 @@ export class SapToGwlWithConfService {
       FileType.BRAND,
       FileType.CATEGORY,
     ];
+    includedFileTypes =
+      includedFileTypes?.filter((ft) => SKU_CONFIG_TYPE.includes(ft)) ||
+      SKU_CONFIG_TYPE;
+
     const files = listFilesInFolder(this.sourceFileFolder, this.startDate);
+    const fileTypesWritable: Partial<Record<FileType, Writable[]>> = {};
+    for (const fileType of includedFileTypes) {
+      fileTypesWritable[fileType] = getConversionWritables(
+        `${this.destinationFileFolder}/${this.startTime}`,
+        fileType,
+        this.sapFileConversionServices
+      );
+    }
+
     // files must be correctly ordered
     for (const file of files) {
       const { path, fileType } = file;
-      if (
-        SKU_CONFIG_TYPE.includes(fileType) &&
-        (!includedFileTypes || includedFileTypes.includes(fileType))
-      ) {
-        await readAndConvertSkuConfigFiles(
-          path,
-          `${this.destinationFileFolder}/${this.startTime}`,
-          fileType,
-          this.sapFileConversionServices
+      if (includedFileTypes.includes(fileType)) {
+        const readStream = fs.createReadStream(path, { encoding: "utf-8" });
+        await pipeToMultipleWritables(
+          readStream,
+          fileTypesWritable[fileType]!,
+          { closeWritablesOnEnd: false }
         );
       }
     }
+
+    for (const writables of Object.values(fileTypesWritable)) {
+      closeAllWritables(writables);
+    }
+
     return path.join(this.destinationFileFolder, this.startTime);
   }
   async executeUploadSkuConfig(

@@ -10,7 +10,13 @@ import { ConfigurationGetter, CSVRecord, FileType } from "./type.js";
 import fs from "fs";
 import { timestampString } from "../utils/timestamp-string.js";
 import { ulid } from "ulid";
-import { pipeToMultipleWritables } from "../utils/pipeline-to-multiple-writables.js";
+import { Writable } from "stream";
+
+function isExcluded(category: string, brand: string, article: string): boolean {
+  // if (category == "221" && brand == "GUC") return false;
+  // return true;
+  return false;
+}
 
 export function normalizeArticleId(id: string): string {
   return `${id ?? ""}`.trim().replace(/[-_]/g, "");
@@ -22,8 +28,8 @@ export function normalizeCategoryId(id: string): string {
   return `${id ?? ""}`.trim().toLowerCase().replace(/[-_]/g, ""); //Handle case _ , - (PAR_001 => PAR-001 = Dup);
 }
 export function normalizeText(text: string): string {
-  text = `${text ?? ""}`
-  text = text.trim().replace(/"/g, '""')
+  text = `${text ?? ""}`;
+  text = text.trim().replace(/"/g, '""');
   return `"${text}"`;
 }
 
@@ -126,6 +132,7 @@ export class SapFileConversionService {
     const productName = normalizeText(row["MAKTX"]);
     const brandCode = normalizeBrandId(row["BRAND_ID"]);
     if (!sku || !categoryId || !brandCode) return;
+    if (isExcluded(categoryId, brandCode, sku)) return;
     const config = configurationGetter(categoryId, brandCode, trimmedSku);
     if (!config) return;
     const [earnable, burnable, earnRate] = config;
@@ -142,43 +149,38 @@ export class SapFileConversionService {
   }
 }
 
-export async function readAndConvertSkuConfigFiles(
-  srcFilePath: string,
+export function getConversionWritables(
   dstFileFolder: string,
   fileType: FileType,
   services: Record<COMPANY, SapFileConversionService>
-): Promise<void> {
-  const readStream = fs.createReadStream(srcFilePath, { encoding: "utf-8" });
-  const writeStreams = await Promise.all(
-    CHANNEL_CONFIGURATIONS.map(async (channel) => {
-      const service = services[channel.company];
-      const { headers, convert } = service.getHeaderAndConverter(
-        fileType,
-        channel
-      );
-      let firstLine = true;
-      let sapHeaders: string[];
-      return new ChunkWriteStream({
-        path: path.join(dstFileFolder, channel.code, fileType),
-        filename: `${timestampString()}_${ulid()}`,
-        extension: "csv",
-        getFileHeader: () => `From: ${srcFilePath}\n` + headers.join(", "),
-        transformLine(line: string) {
-          if (firstLine) {
-            firstLine = false;
-            sapHeaders = line.split("|");
-          } else {
-            const splittedLine = line.split("|");
-            const record = Object.fromEntries(
-              sapHeaders.map((header, i) => [header, splittedLine[i]])
-            );
-            return convert(record)?.join(",");
-          }
-        },
-      });
-    })
-  );
-  await pipeToMultipleWritables(readStream, writeStreams);
+): Writable[] {
+  return CHANNEL_CONFIGURATIONS.map((channel) => {
+    const service = services[channel.company];
+    const { headers, convert } = service.getHeaderAndConverter(
+      fileType,
+      channel
+    );
+    let firstLine = true;
+    let sapHeaders: string[];
+    return new ChunkWriteStream({
+      path: path.join(dstFileFolder, channel.code, fileType),
+      filename: `${timestampString()}_${ulid()}`,
+      extension: "csv",
+      getFileHeader: () => `Unused Lines\n` + headers.join(", "),
+      transformLine(line: string) {
+        if (firstLine) {
+          firstLine = false;
+          sapHeaders = line.split("|");
+        } else {
+          const splittedLine = line.split("|");
+          const record = Object.fromEntries(
+            sapHeaders.map((header, i) => [header, splittedLine[i]])
+          );
+          return convert(record)?.join(",");
+        }
+      },
+    });
+  });
 }
 
 export async function listConvertedSkuConfigs(

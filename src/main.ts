@@ -34,19 +34,19 @@ async function main() {
 
   // ================================================ build and upload sku configs
   const skuFolder = await service.executeSkuConfig([
-    // FileType.ARTICLE,
+    FileType.ARTICLE,
     FileType.CATEGORY,
     FileType.BRAND,
   ]);
-  await service.executeUploadSkuConfig(skuFolder, [
-    // FileType.ARTICLE,
-    FileType.CATEGORY,
-    FileType.BRAND,
-  ]);
+  // await service.executeUploadSkuConfig(skuFolder, [
+  //   // FileType.ARTICLE,
+  //   FileType.CATEGORY,
+  //   FileType.BRAND,
+  // ]);
 
   // ================================================ build and upload cost center
-  const costCenterCsv = await service.executeCostCenterConfig();
-  await service.executeUploadCostCenterConfig(costCenterCsv);
+  // const costCenterCsv = await service.executeCostCenterConfig();
+  // await service.executeUploadCostCenterConfig(costCenterCsv);
   
   // ================================================
   console.log("complete");

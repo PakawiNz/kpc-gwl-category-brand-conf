@@ -1,6 +1,6 @@
-import { Writable, WritableOptions } from 'stream';
-import { createWriteStream, mkdirSync } from 'fs';
-import * as path from 'path';
+import { Writable, WritableOptions } from "stream";
+import { createWriteStream, mkdirSync } from "fs";
+import * as path from "path";
 
 export interface ChunkWriteStreamOptions extends WritableOptions {
   path?: string;
@@ -22,9 +22,9 @@ export class ChunkWriteStream extends Writable {
   private currentWriteStream: Writable | null;
   private generatedFiles: string[];
   private lineBuffer: string; // Buffer for incomplete lines
-  private transformLine?: ChunkWriteStreamOptions['transformLine'];
-  private getFileHeader?: ChunkWriteStreamOptions['getFileHeader'];
-  private getFilename?: ChunkWriteStreamOptions['getFilename'];
+  private transformLine?: ChunkWriteStreamOptions["transformLine"];
+  private getFileHeader?: ChunkWriteStreamOptions["getFileHeader"];
+  private getFilename?: ChunkWriteStreamOptions["getFilename"];
 
   constructor(options: ChunkWriteStreamOptions) {
     // decodeStrings: false ensures that if strings are passed, they are not re-encoded.
@@ -32,19 +32,20 @@ export class ChunkWriteStream extends Writable {
     super({ ...options, decodeStrings: false });
 
     // Configuration
-    this.basePath = options.path || '.';    
-    this.filename = options.filename || 'output';
-    this.extension = options.extension || 'txt';
+    this.basePath = options.path || ".";
+    this.filename = options.filename || "output";
+    this.extension = options.extension || "txt";
     this.maxFileSize = options.maxFileSize || 10 * 1024 * 1024; // Default: 10 MB
     // State
     this.part = 0; // Start at 0, will be incremented before creating the first file
     this.currentFileSize = 0;
     this.currentWriteStream = null;
     this.generatedFiles = [];
-    this.lineBuffer = '';
+    this.lineBuffer = "";
     this.transformLine = options.transformLine;
     this.getFileHeader = options.getFileHeader;
-    this.getFilename = options.getFilename ?? ((part) => `${this.filename}-part-${part}`);
+    this.getFilename =
+      options.getFilename ?? ((part) => `${this.filename}-part-${part}`);
 
     // Start with the first file
     mkdirSync(this.basePath, { recursive: true });
@@ -53,7 +54,10 @@ export class ChunkWriteStream extends Writable {
 
   private _generateFilename(): string {
     // part number is 1-based for filenames
-    return path.join(this.basePath, this.getFilename!(this.part) + `.${this.extension}`);
+    return path.join(
+      this.basePath,
+      this.getFilename!(this.part) + `.${this.extension}`
+    );
   }
 
   protected _createWriteStream(filePath: string): Writable {
@@ -68,8 +72,8 @@ export class ChunkWriteStream extends Writable {
         console.log(`Creating new file: ${filePath}`);
         this.generatedFiles.push(filePath);
         this.currentWriteStream = this._createWriteStream(filePath);
-        this.currentWriteStream.on('error', (err) => {
-          this.emit('error', err);
+        this.currentWriteStream.on("error", (err) => {
+          this.emit("error", err);
           reject(err);
         });
         this.currentFileSize = 0;
@@ -78,8 +82,10 @@ export class ChunkWriteStream extends Writable {
         if (this.getFileHeader) {
           const headerString = this.getFileHeader(this.part);
           if (headerString && headerString.length > 0) {
-            const headerOutput = headerString.endsWith('\n') ? headerString : headerString + '\n';
-            const headerBuffer = Buffer.from(headerOutput, 'utf8');
+            const headerOutput = headerString.endsWith("\n")
+              ? headerString
+              : headerString + "\n";
+            const headerBuffer = Buffer.from(headerOutput, "utf8");
             this.currentWriteStream!.write(headerBuffer);
             this.currentFileSize += headerBuffer.length;
             // as transformLine's lineNumber is for lines it processes.
@@ -102,31 +108,30 @@ export class ChunkWriteStream extends Writable {
   _write(
     chunk: Buffer | string,
     encoding: BufferEncoding,
-    callback: (error?: Error | null) => void,
+    callback: (error?: Error | null) => void
   ): void {
     this._asyncWrite(chunk).then(callback).catch(callback);
   }
   private _transformStream(stream: string): string {
     if (!this.transformLine) return stream;
-    return (
-      stream
-        .split('\n')
-        .map((line) => this.transformLine!(line))
-        .filter((line) => line !== undefined)
-        .join('\n') + '\n'
-    );
+    return stream
+      .split("\n")
+      .map((line) => this.transformLine!(line))
+      .filter((line) => line !== undefined)
+      .map((line) => line + "\n")
+      .join("");
   }
   private async _asyncWrite(chunk: Buffer | string): Promise<undefined> {
-    const chunkStr = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
+    const chunkStr = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : chunk;
     this.lineBuffer += chunkStr;
 
-    let lastNewlineIndex = this.lineBuffer.lastIndexOf('\n');
+    let lastNewlineIndex = this.lineBuffer.lastIndexOf("\n");
 
     while (lastNewlineIndex !== -1) {
       let lineToWrite = this.lineBuffer.substring(0, lastNewlineIndex + 1);
       lineToWrite = this._transformStream(lineToWrite);
       // Convert back to buffer for accurate size and writing
-      const lineToWriteBuffer = Buffer.from(lineToWrite, 'utf8');
+      const lineToWriteBuffer = Buffer.from(lineToWrite, "utf8");
 
       // If current file is not empty AND this line would exceed maxFileSize, switch files.
       // A single line larger than maxFileSize will still be written to a file by itself.
@@ -141,7 +146,7 @@ export class ChunkWriteStream extends Writable {
       this.currentFileSize += lineToWriteBuffer.length;
 
       this.lineBuffer = this.lineBuffer.substring(lastNewlineIndex + 1);
-      lastNewlineIndex = this.lineBuffer.lastIndexOf('\n');
+      lastNewlineIndex = this.lineBuffer.lastIndexOf("\n");
     }
   }
 
@@ -151,7 +156,7 @@ export class ChunkWriteStream extends Writable {
     if (this.lineBuffer.length > 0) {
       let finalLine = this.lineBuffer;
       finalLine = this._transformStream(finalLine);
-      const remainingBuffer = Buffer.from(finalLine, 'utf8');
+      const remainingBuffer = Buffer.from(finalLine, "utf8");
       // If current file has content and remaining buffer would overflow, create new file
       if (
         this.currentFileSize > 0 &&
@@ -161,7 +166,7 @@ export class ChunkWriteStream extends Writable {
       }
       this.currentWriteStream!.write(remainingBuffer);
       // this.currentFileSize += remainingBuffer.length; // Not strictly necessary for the final write
-      this.lineBuffer = ''; // Clear buffer
+      this.lineBuffer = ""; // Clear buffer
     }
 
     if (this.currentWriteStream) {
