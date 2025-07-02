@@ -220,6 +220,8 @@ if __name__ == "__main__":
 
     for category_file in category_files:
         date = datetime.datetime.strptime(category_file.datetime[:8], "%Y%m%d").date()
+        if category_file.datetime[8:] == '999999':
+            last_run = date
         if insert_imported_logs_if_not_exists(
             DB_NAME, IMOPORTED_LOG_TABLE_NAME, str(category_file.path)
         ):
@@ -227,7 +229,8 @@ if __name__ == "__main__":
 
     summarize_by_imported_at(DB_NAME, TABLE_NAME)
 
-    last_run = datetime.date(2025, 6, 30)
+    print('last run', last_run)
+    assert last_run
     today = datetime.date.today().isoformat().replace("-", "")
     category_files.sort(key=lambda k: k.datetime, reverse=True)
     write_raw_record_of_delta_category(
