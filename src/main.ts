@@ -34,6 +34,7 @@ async function main() {
     SKU_CONFIG_JSON_PATH,
     SOURCE_FOLDER,
     DESTINATION_FOLDER,
+    today
   );
 
   // ================================================ prepare master for MD
@@ -42,18 +43,18 @@ async function main() {
   // ================================================ build and upload sku configs
   const skuFolder = await service.executeSkuConfig([
     // FileType.ARTICLE,
-    // FileType.CATEGORY,
+    FileType.CATEGORY,
     FileType.BRAND,
   ]);
   await service.executeUploadSkuConfig(skuFolder, [
     // FileType.ARTICLE,
-    // FileType.CATEGORY,
+    FileType.CATEGORY,
     FileType.BRAND,
   ]);
 
   // ================================================ build and upload cost center
-  // const costCenterCsv = await service.executeCostCenterConfig();
-  // await service.executeUploadCostCenterConfig(costCenterCsv);
+  const costCenterCsv = await service.executeCostCenterConfig();
+  await service.executeUploadCostCenterConfig(costCenterCsv);
 
   // ================================================
   console.log("complete");

@@ -234,7 +234,7 @@ export class Uploader {
   }
 
   async uploadCostCenterConfig(filePath: string) {
-    await timer(60000)
+    await timer(1000)
     const token = (await this.getToken())["access_token"];
     await this.importCostCenter(token, filePath);
   }
