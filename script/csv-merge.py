@@ -40,15 +40,14 @@ def merge_csv_files(input_files: list[str], output_file: str, header_rows: int):
 # Example Usage (equivalent to the TypeScript example)
 if __name__ == "__main__":
     # folder_path = '/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/20250624_143620/KPC_OFFLINE/ARTICLE'
-    folder_path = '/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/gwl-category-brand-master/20250625_111656/KPC_OFFLINE/ARTICLE'
+    date = '20250627_202611'
+    channel = 'KPC_OFFLINE'
+    folder_path = f'/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/gwl-category-brand-master/{date}/{channel}/ARTICLE'
 
     # Generate a unique ID similar to ulid. For simplicity, using uuid4.
     # If you strictly need ulid, you'd need to install the 'ulid-py' package.
-    unique_id = str(uuid.uuid4()).replace("-", "")[
-        :16
-    ]  # ulid is 26 chars, uuid4 is longer. This truncates for similar length.
 
-    output_csv_path = f"{folder_path}.{unique_id}.csv"
+    output_csv_path = f"{folder_path}.{channel}.{date}.csv"
 
     input_files = sorted(get_file_paths(folder_path))
     merge_csv_files(input_files, output_csv_path, 2)

@@ -8,6 +8,7 @@ export interface ConfigurationMapper {
   SKU: SubConfigurationMapper;
   CAT: SubConfigurationMapper;
   ["CAT|BRN"]: SubConfigurationMapper;
+  ["CAT|BRN|SKU"]: SubConfigurationMapper;
 }
 export interface CompanyConfigurationMapper {
   [key: string]: ConfigurationMapper;
@@ -41,7 +42,7 @@ export function createConfigurationGetter(
       article !== undefined
     ) {
       const config =
-        jsonContent[company]["SKU"][article] ||
+        jsonContent[company]["CAT|BRN|SKU"][`${category}|${brand}|${article}`] ||
         jsonContent[company]["CAT|BRN"][`${category}|${brand}`];
       if (!jsonContent[company]["CAT"][category]) return;
       else return convertConfig(config);

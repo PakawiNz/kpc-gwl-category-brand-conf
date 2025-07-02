@@ -3,7 +3,7 @@ dotenv.config();
 
 // ================================================================================================================
 const SKU_CONFIG_XLSX_PATH =
-  "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER-v20250623.xlsx";
+  "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER-v20250626.xlsx";
   // "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER.xlsx";
 const SKU_CONFIG_JSON_PATH =
   "/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/sku-configuration-prod/GWL-SKU-CAT-BRAND-MASTER.json";
@@ -34,7 +34,6 @@ async function main() {
     SKU_CONFIG_JSON_PATH,
     SOURCE_FOLDER,
     DESTINATION_FOLDER
-    // '20250617'
   );
 
   // ================================================ prepare master for MD
@@ -43,18 +42,18 @@ async function main() {
   // ================================================ build and upload sku configs
   const skuFolder = await service.executeSkuConfig([
     // FileType.ARTICLE,
-    FileType.CATEGORY,
+    // FileType.CATEGORY,
     FileType.BRAND,
   ]);
-  await service.executeUploadSkuConfig(skuFolder, [
-    // FileType.ARTICLE,
-    FileType.CATEGORY,
-    FileType.BRAND,
-  ]);
+  // await service.executeUploadSkuConfig(skuFolder, [
+  //   // FileType.ARTICLE,
+  //   // FileType.CATEGORY,
+  //   FileType.BRAND,
+  // ]);
 
   // ================================================ build and upload cost center
-  const costCenterCsv = await service.executeCostCenterConfig();
-  await service.executeUploadCostCenterConfig(costCenterCsv);
+  // const costCenterCsv = await service.executeCostCenterConfig();
+  // await service.executeUploadCostCenterConfig(costCenterCsv);
 
   // ================================================
   console.log("complete");

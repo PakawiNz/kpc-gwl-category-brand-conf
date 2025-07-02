@@ -26,6 +26,7 @@ interface ConfigurationMapper {
   CAT: SubResult;
   BRN: SubResult;
   ["CAT|BRN"]: SubResult;
+  ["CAT|BRN|SKU"]: SubResult;
 }
 interface CompanyConfigurationMapper {
   [key: string]: ConfigurationMapper;
@@ -85,6 +86,7 @@ function normalizeCategoryAndBrandRule(
     CAT: {},
     BRN: {},
     ["CAT|BRN"]: {},
+    ["CAT|BRN|SKU"]: {},
   }));
 
   const errors: string[] = [];
@@ -111,10 +113,10 @@ function normalizeCategoryAndBrandRule(
         const keys = (() => {
           if (categoryMaster) return [["CAT", categoryMaster]];
           if (brandMaster) return [["BRN", brandMaster]];
-          if (skus) {
+          if (skus && category && brand) {
             return skus
               .split(/\s*;\s*/)
-              .map((s: string) => ["SKU", s.replace(/^0+/, "")]);
+              .map((s: string) => ["CAT|BRN|SKU", `${category}|${brand}|${s.replace(/^0+/, "")}`]);
           } else if (category && brand) {
             return [["CAT|BRN", `${category}|${brand}`]];
           } else {

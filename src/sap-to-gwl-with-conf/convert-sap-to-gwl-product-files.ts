@@ -26,11 +26,12 @@ const INCLUSION_LIST = (() => {
 })();
 
 function isExcluded(category: string, brand: string, article: string): boolean {
-  if (!category.match(/^\d{3}$/)) return true;
-  if (!INCLUSION_LIST) return false;
-  if (INCLUSION_LIST.has(`${category}|${brand}`)) return false;
-  if (INCLUSION_LIST.has(`${category}|${brand}|${article}`)) return false;
-  return true;
+  if (INCLUSION_LIST) {
+    if (INCLUSION_LIST.has(`${category}|${brand}`)) return false;
+    if (INCLUSION_LIST.has(`${category}|${brand}|${article}`)) return false;
+    return true;
+  }
+  return !category.match(/^\d{3}$/);
 }
 
 export function normalizeArticleId(id: string): string {
@@ -145,7 +146,7 @@ export class SapFileConversionService {
     const trimmedSku = sku.replace(/^0+/, "");
     const categoryId = normalizeCategoryId(row["MATKL"]).substring(0, 3);
     const productName = normalizeText(row["MAKTX"]);
-    const brandCode = normalizeBrandId(row["BRAND_ID"]);
+    const brandCode = normalizeBrandId(row["BRAND_ID"]) || "000";
     if (!sku || !categoryId || !brandCode) return;
     if (isExcluded(categoryId, brandCode, sku)) return;
     const config = configurationGetter(categoryId, brandCode, trimmedSku);

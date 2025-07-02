@@ -11,7 +11,7 @@ import { Any } from "../type.js";
  * @returns A Transform stream that emits objects representing each row.
  * @throws Error if the file cannot be read.
  */
-export function getCSVReadStream(filePath: string, delimit=","): Transform {
+export function getCSVReadStream(filePath: string, delimit = ","): Transform {
   const transform = new Transform({
     objectMode: true,
     transform(chunk, encoding, callback) {
@@ -88,6 +88,18 @@ export function getCSVReadStream(filePath: string, delimit=","): Transform {
   })();
 
   return transform;
+}
+
+export async function readCSVStream(
+  streamFile: Transform,
+  readFunction: (row: Record<string, string>) => void
+): Promise<void> {
+  await new Promise((resolve, reject) => {
+    streamFile
+      .on("data", readFunction)
+      .on("end", () => resolve(undefined))
+      .on("error", (e) => reject(e));
+  });
 }
 
 export function getCSV(csvPath: string, delimiter: string) {
