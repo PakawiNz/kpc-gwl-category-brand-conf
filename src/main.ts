@@ -33,7 +33,7 @@ async function main() {
   const service = new SapToGwlWithConfService(
     SKU_CONFIG_JSON_PATH,
     SOURCE_FOLDER,
-    DESTINATION_FOLDER
+    DESTINATION_FOLDER,
   );
 
   // ================================================ prepare master for MD
@@ -45,11 +45,11 @@ async function main() {
     // FileType.CATEGORY,
     FileType.BRAND,
   ]);
-  // await service.executeUploadSkuConfig(skuFolder, [
-  //   // FileType.ARTICLE,
-  //   // FileType.CATEGORY,
-  //   FileType.BRAND,
-  // ]);
+  await service.executeUploadSkuConfig(skuFolder, [
+    // FileType.ARTICLE,
+    // FileType.CATEGORY,
+    FileType.BRAND,
+  ]);
 
   // ================================================ build and upload cost center
   // const costCenterCsv = await service.executeCostCenterConfig();

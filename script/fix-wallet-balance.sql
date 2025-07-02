@@ -1,11 +1,21 @@
+-- 
 
+SELECT 
+    wb."memberId",
+    wb."walletCode",
+    wb."expiredAt",
+    wb.amount
+FROM public."WalletBalance" wb 
+WHERE wb."memberId" = '01JYB8AY4FT0JJR23DCV8DX6HQ'
+
+-- 
 SELECT 
     wt."memberId",
     wt."walletCode",
     wt."expiredAt",
     COALESCE(SUM(wt.amount), 0) as total_amount
-FROM point_service."WalletTransaction" wt 
-WHERE wt."memberId" = '01JYB8C08WAFFZCDGX32ZPVENM' 
+FROM public."WalletTransaction" wt 
+WHERE wt."memberId" = '01JYB8AY4FT0JJR23DCV8DX6HQ'
 AND wt."walletCode" = 'CARAT_WALLET'
 GROUP BY wt."memberId", wt."walletCode", wt."expiredAt";
 

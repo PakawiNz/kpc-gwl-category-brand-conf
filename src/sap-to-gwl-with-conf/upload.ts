@@ -102,7 +102,7 @@ export class Uploader {
   async uploadSkuConfig(filePaths: [string, string, string][]) {
     await this.prepareUpload();
     for (const [channelCode, fileType, filePath] of filePaths) {
-      await timer(60000)
+      await timer(1000)
       const accessToken = (await this.getToken())["access_token"];
       console.log(channelCode, fileType);
       switch (fileType) {

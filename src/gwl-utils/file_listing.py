@@ -41,7 +41,7 @@ def get_file_type_from_name(module: str) -> FileType | None:
     return MODULE_TO_FILE_TYPE_MAP.get(module.lower())
 
 
-def list_files_in_folder(folder: str, start_date: str = "") -> list[PathWithFileType]:
+def list_files_in_folder(folder: str, start_date: str = "", no_filter=False) -> list[PathWithFileType]:
     """
     Lists, filters, and sorts files in a folder based on their name, nature, and date.
 
@@ -78,6 +78,9 @@ def list_files_in_folder(folder: str, start_date: str = "") -> list[PathWithFile
             # Ignores files that don't match the expected naming convention
             print(f"Skipping file with incorrect format: {file_name}")
             continue
+
+    if no_filter:
+        return all_files
 
     # 2. Find the latest datetime for each "FULL" file type
     max_datetime_each_type = defaultdict(str)

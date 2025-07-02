@@ -2,6 +2,7 @@ import re
 import sqlite3
 import csv
 from typing import List, Tuple
+from abc_normalize import normalize_article_id, normalize_category_id, normalize_brand_id
 
 # --- Database Configuration ---
 DB_NAME = "data/articles.db"
@@ -98,32 +99,6 @@ def upsert_articles(articles: List[Tuple[str, str, str]], table_name: str):
         print(f"Successfully upserted/updated {len(articles)} articles. ✅")
     finally:
         conn.close()
-
-
-# --- Normalization Functions (Placeholders) ---
-
-
-def normalize_article_id(id_str: str | None) -> str:
-    """Normalizes the article ID by trimming and removing hyphens/underscores."""
-    if id_str is None:
-        return ""
-    # Use re.sub() to replace all occurrences of '-' or '_'
-    return re.sub(r"[-_]", "", str(id_str).strip())
-
-
-def normalize_brand_id(id_str: str | None) -> str:
-    """Normalizes the brand ID by trimming and converting to uppercase."""
-    if id_str is None:
-        return ""
-    return str(id_str).strip().upper()
-
-
-def normalize_category_id(id_str: str | None) -> str:
-    """Normalizes the category ID by trimming, lowercasing, and removing hyphens/underscores."""
-    if id_str is None:
-        return ""
-    # Use re.sub() to replace all occurrences of '-' or '_'
-    return re.sub(r"[-_]", "", str(id_str).strip().lower())
 
 
 # --- Main Logic ---
