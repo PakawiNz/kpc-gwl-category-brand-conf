@@ -83,10 +83,10 @@ def summarize_by_imported_at(db_name: str, table_name: str) -> None:
             results = cursor.fetchall()
             print("\nSummary by Import Date:")
             print("----------------------")
-            print("ImportDate | Count")
+            print("ImportDate |      Count")
             print("----------------------")
             for count, date in results:
-                print(f"{date} | {count:5d}")
+                print(f"{date} | {count:10d}")
             print("----------------------")
     except sqlite3.Error as e:
         print(f"Database error: {e}")
