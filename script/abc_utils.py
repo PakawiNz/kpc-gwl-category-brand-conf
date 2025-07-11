@@ -81,14 +81,28 @@ def summarize_by_imported_at(db_name: str, table_name: str) -> None:
             """
             )
             results = cursor.fetchall()
-            print("\nSummary by Import Date:")
-            print("----------------------")
+            print()
+            print("Summary by Import Date:")
+            print("-----------------------")
             print("ImportDate |      Count")
-            print("----------------------")
+            print("-----------------------")
             for count, date in results:
                 print(f"{date} | {count:10d}")
-            print("----------------------")
+            print("-----------------------")
     except sqlite3.Error as e:
         print(f"Database error: {e}")
     finally:
         conn.close()
+
+
+def sync_s3():
+    """Syncs files with S3 using AWS CLI"""
+    import dotenv
+
+    dotenv.load_dotenv()
+
+    s3_bucket = os.getenv("AWS_BUCKET_NAME")
+    local_path = "./data"
+
+    sync_command = f"aws s3 sync s3://{s3_bucket} {local_path}"
+    os.system(sync_command)

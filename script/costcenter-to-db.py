@@ -4,7 +4,7 @@ import sqlite3
 import csv
 from typing import List, Tuple
 from file_listing import FileType, list_files_in_folder
-from abc_normalize import normalize_brand_id, normalize_text
+from abc_normalize import normalize_costcenter_id, normalize_text, normalize_text
 from abc_utils import (
     get_db_connection,
     create_imported_logs,
@@ -14,16 +14,16 @@ from abc_utils import (
 )
 
 
-# --- Configuration ---
+# --- Database Configuration ---
 SOURCE_FOLDER = "/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/kpg-sap-s3-outbound-prod/"
-FILE_TYPE = FileType.BRAND
-DB_NAME = "data/brands.db"
-TABLE_NAME = "brands"
-IMOPORTED_LOG_TABLE_NAME = "brands_imported_log"
-OUTPUT_FILE_NAME = "S4P_BRAND_FULL_{today}_999999_1_1"
+FILE_TYPE = FileType.COST_CENTER
+DB_NAME = "data/costcenters.db"
+TABLE_NAME = "costcenters"
+IMOPORTED_LOG_TABLE_NAME = "costcenters_imported_log"
+OUTPUT_FILE_NAME = "S4P_COSTCENTER_FULL_{today}_999999_1_1"
 
 
-def create_brand_config_table(table_name: str):
+def create_costcenter_config_table(table_name: str):
     """Creates the '{table_name}' table if it doesn't already exist."""
     conn = get_db_connection(DB_NAME)
     try:
@@ -31,8 +31,8 @@ def create_brand_config_table(table_name: str):
             conn.execute(
                 f"""
                 CREATE TABLE IF NOT EXISTS {table_name} (
-                    brand_id TEXT PRIMARY KEY,
-                    brand_name TEXT NOT NULL,
+                    costcenter_id TEXT PRIMARY KEY,
+                    costcenter_name TEXT NOT NULL,
                     imported_at DATE NOT NULL
                 )
             """
@@ -45,26 +45,28 @@ def create_brand_config_table(table_name: str):
         conn.close()
 
 
-def upsert_brands(brands: List[Tuple[str, str, datetime.date]], table_name: str):
+def upsert_costcenters(
+    costcenters: List[Tuple[str, str, datetime.date]], table_name: str
+):
     """
-    Inserts or replaces a chunk of brand records in a single transaction.
+    Inserts or replaces a chunk of costcenter records in a single transaction.
 
     Args:
-        brands: A list of tuples, where each tuple contains
-                  (brand_id, brand_name, imported_at).
+        costcenters: A list of tuples, where each tuple contains
+                  (costcenter_id, costcenter_name, imported_at).
     """
-    # Check if there are any brands to process
-    if not brands:
-        print("No brands provided to upsert.")
+    # Check if there are any costcenters to process
+    if not costcenters:
+        print("No costcenters provided to upsert.")
         return
 
     sql = f"""
-        INSERT INTO {table_name} (brand_id, brand_name, imported_at)
+        INSERT INTO {table_name} (costcenter_id, costcenter_name, imported_at)
         VALUES (?, ?, ?)
-        ON CONFLICT(brand_id) DO UPDATE SET
-            brand_id=excluded.brand_id,
-            brand_name=excluded.brand_name
-        WHERE {table_name}.brand_name IS NOT excluded.brand_name;
+        ON CONFLICT(costcenter_id) DO UPDATE SET
+            costcenter_id=excluded.costcenter_id,
+            costcenter_name=excluded.costcenter_name
+        WHERE {table_name}.costcenter_name IS NOT excluded.costcenter_name;
     """
 
     conn = get_db_connection(DB_NAME)
@@ -72,11 +74,11 @@ def upsert_brands(brands: List[Tuple[str, str, datetime.date]], table_name: str)
         # The 'with conn:' block automatically begins and commits/rollbacks a transaction.
         with conn:
             # Use executemany to efficiently process the entire list.
-            conn.executemany(sql, brands)
+            conn.executemany(sql, costcenters)
     except sqlite3.Error as e:
-        print(f"Failed to upsert a chunk of {len(brands)} brands: {e}")
+        print(f"Failed to upsert a chunk of {len(costcenters)} costcenters: {e}")
     else:
-        print(f"Successfully upserted/updated {len(brands)} brands. ✅")
+        print(f"Successfully upserted/updated {len(costcenters)} costcenters. ✅")
     finally:
         conn.close()
 
@@ -84,15 +86,15 @@ def upsert_brands(brands: List[Tuple[str, str, datetime.date]], table_name: str)
 # --- Main Logic ---
 
 
-def brand_to_db(file_path: str, date: datetime.date, table_name: str):
+def costcenter_to_db(file_path: str, date: datetime.date, table_name: str):
     """
-    Main function to read brand data from CSV files and load into the database.
+    Main function to read costcenter data from CSV files and load into the database.
 
     Args:
         files: A list of CSV file paths to process.
     """
     # 1. Ensure the database table exists
-    assert create_brand_config_table(table_name)
+    assert create_costcenter_config_table(table_name)
 
     chunk = []
 
@@ -104,19 +106,19 @@ def brand_to_db(file_path: str, date: datetime.date, table_name: str):
             reader = csv.DictReader(csvfile, delimiter="|")
             for row in reader:
                 # 3. Normalize data from each row
-                brand_id = normalize_brand_id(row.get("BRAND_ID", ""))
-                brand_text = normalize_text(row.get("BRAND_DESCR", ""))
+                costcenter_id = normalize_costcenter_id(row.get("KOSTL", ""))
+                costcenter_text = normalize_text(row.get("LTXT", ""))
 
                 # Skip if essential data is missing
-                if not brand_id or not brand_text:
+                if not costcenter_id or not costcenter_text:
                     print(f"Skipping row due to missing: {row}")
                     continue
 
                 # 4. Upsert the processed data into the database
-                chunk.append([brand_id, brand_text, date])
+                chunk.append([costcenter_id, costcenter_text, date])
 
                 if len(chunk) == 1000:
-                    upsert_brands(chunk, table_name)
+                    upsert_costcenters(chunk, table_name)
                     chunk = []
 
         print(f"Successfully processed {file_path}. 🎉")
@@ -126,11 +128,11 @@ def brand_to_db(file_path: str, date: datetime.date, table_name: str):
         print(f"An error occurred while processing {file_path}: {e}")
 
     if len(chunk):
-        upsert_brands(chunk, table_name)
+        upsert_costcenters(chunk, table_name)
         chunk = []
 
 
-def write_raw_record_of_delta_brand(
+def write_raw_record_of_delta_costcenter(
     source_files: list[str], table_name: str, last_run: datetime.date, to_file: str
 ):
     """
@@ -143,29 +145,29 @@ def write_raw_record_of_delta_brand(
         source_files: A list of raw data CSV file paths to search through.
     """
 
-    # --- Step 1: Read the list of missing brand_ids into a set for fast lookups ---
+    # --- Step 1: Read the list of missing costcenter_ids into a set for fast lookups ---
     try:
         conn = get_db_connection(DB_NAME)
         cursor = conn.cursor()
         cursor.execute(
             f"""
-            SELECT brand_id
+            SELECT costcenter_id
             FROM {table_name}
             WHERE imported_at > '{last_run.isoformat()}'
         """
         )
-        missing_brands = {row["brand_id"] for row in cursor.fetchall()}
+        missing_costcenters = {row["costcenter_id"] for row in cursor.fetchall()}
         conn.close()
     except sqlite3.Error as e:
-        print(f"❌ Database error while fetching missing brand_ids: {e}")
+        print(f"❌ Database error while fetching missing costcenter_ids: {e}")
         return
 
-    if not missing_brands:
-        print("✅ No missing brand_ids to process.")
+    if not missing_costcenters:
+        print("✅ No missing costcenter_ids to process.")
         return
 
     print(
-        f"Searching for the original lines of {len(missing_brands)} missing brand_ids..."
+        f"Searching for the original lines of {len(missing_costcenters)} missing costcenter_ids..."
     )
 
     # --- Step 2: Open the output file and search through the source files line by line ---
@@ -188,11 +190,13 @@ def write_raw_record_of_delta_brand(
                         # Process the rest of the file
                         for line in infile:
                             try:
-                                raw_brand_id = line.strip().split("|")[0]
-                                normalized_brand_id = normalize_brand_id(raw_brand_id)
+                                raw_costcenter_id = line.strip().split("|")[0]
+                                normalized_costcenter_id = normalize_text(
+                                    raw_costcenter_id
+                                )
 
-                                if normalized_brand_id in missing_brands:
-                                    missing_brands.remove(normalized_brand_id)
+                                if normalized_costcenter_id in missing_costcenters:
+                                    missing_costcenters.remove(normalized_costcenter_id)
                                     outfile.write(
                                         line
                                     )  # Write the original, unmodified line
@@ -214,21 +218,21 @@ def write_raw_record_of_delta_brand(
 if __name__ == "__main__":
     sync_s3()
     create_imported_logs(DB_NAME, IMOPORTED_LOG_TABLE_NAME)
-    create_brand_config_table(TABLE_NAME)
+    create_costcenter_config_table(TABLE_NAME)
 
     all_files = list_files_in_folder(SOURCE_FOLDER, no_filter=True)
-    brand_files = [f for f in all_files if f.file_type is FILE_TYPE]
-    brand_files.sort(key=lambda k: k.datetime)
+    costcenter_files = [f for f in all_files if f.file_type is FILE_TYPE]
+    costcenter_files.sort(key=lambda k: k.datetime)
 
     last_run = None
-    for brand_file in brand_files:
-        date = datetime.datetime.strptime(brand_file.datetime[:8], "%Y%m%d").date()
-        if brand_file.datetime[8:] == "999999":
+    for costcenter_file in costcenter_files:
+        date = datetime.datetime.strptime(costcenter_file.datetime[:8], "%Y%m%d").date()
+        if costcenter_file.datetime[8:] == "999999":
             last_run = date
         if insert_imported_logs_if_not_exists(
-            DB_NAME, IMOPORTED_LOG_TABLE_NAME, str(brand_file.path)
+            DB_NAME, IMOPORTED_LOG_TABLE_NAME, str(costcenter_file.path)
         ):
-            brand_to_db(brand_file.path, date, TABLE_NAME)
+            costcenter_to_db(costcenter_file.path, date, TABLE_NAME)
 
     summarize_by_imported_at(DB_NAME, TABLE_NAME)
 
@@ -236,9 +240,9 @@ if __name__ == "__main__":
     print("last run", last_run)
     assert last_run
     today = datetime.date.today().isoformat().replace("-", "")
-    brand_files.sort(key=lambda k: k.datetime, reverse=True)
-    write_raw_record_of_delta_brand(
-        [f.path for f in brand_files],
+    costcenter_files.sort(key=lambda k: k.datetime, reverse=True)
+    write_raw_record_of_delta_costcenter(
+        [f.path for f in costcenter_files],
         TABLE_NAME,
         last_run,
         os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),

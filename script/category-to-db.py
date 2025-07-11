@@ -10,6 +10,7 @@ from abc_utils import (
     create_imported_logs,
     insert_imported_logs_if_not_exists,
     summarize_by_imported_at,
+    sync_s3,
 )
 
 
@@ -215,6 +216,7 @@ def write_raw_record_of_delta_category(
 
 # --- Example Usage ---
 if __name__ == "__main__":
+    sync_s3()
     create_imported_logs(DB_NAME, IMOPORTED_LOG_TABLE_NAME)
     create_category_config_table(TABLE_NAME)
 

@@ -15,6 +15,7 @@ from abc_utils import (
     create_imported_logs,
     insert_imported_logs_if_not_exists,
     summarize_by_imported_at,
+    sync_s3,
 )
 
 
@@ -51,7 +52,9 @@ def create_article_config_table(table_name: str):
         conn.close()
 
 
-def upsert_articles(articles: List[Tuple[str, str, str, str, datetime.date]], table_name: str):
+def upsert_articles(
+    articles: List[Tuple[str, str, str, str, datetime.date]], table_name: str
+):
     """
     Inserts or replaces a chunk of article records in a single transaction.
 
@@ -117,7 +120,7 @@ def article_to_db(file_path: str, date: datetime.date, table_name: str):
                 # 3. Normalize data from each row
                 article_id = normalize_article_id(row.get("MATNR", ""))
                 article_text = normalize_text(row.get("MAKTX", ""))
-                category_id = normalize_category_id(row.get("MATKL", ""))
+                category_id = normalize_category_id(row.get("MATKL", ""))[:3]
                 brand_id = normalize_brand_id(row.get("BRAND_ID", "")) or "000"
 
                 # Skip if essential data is missing
@@ -126,7 +129,7 @@ def article_to_db(file_path: str, date: datetime.date, table_name: str):
                     continue
 
                 # 4. Upsert the processed data into the database
-                chunk.append((article_id, article_text, article_id, category_id, date))
+                chunk.append((article_id, article_text, category_id, brand_id, date))
 
                 if len(chunk) == 1000:
                     upsert_articles(chunk, table_name)
@@ -225,8 +228,104 @@ def write_raw_record_of_delta_article(
     )
 
 
+def write_raw_record_of_match_article(
+    source_files: list[str],
+    table_name: str,
+    cat_brn: List[Tuple[str, str]],
+    to_file: str,
+):
+    """
+    Finds the original, unprocessed lines for SKUs identified as missing.
+
+    It reads a list of missing SKUs, searches the source files for those SKUs,
+    and writes the exact original line to a new output file.
+
+    Args:
+        source_files: A list of raw data CSV file paths to search through.
+    """
+
+    # --- Step 1: Read the list of missing article_ids into a set for fast lookups ---
+    try:
+        conn = get_db_connection(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""
+            SELECT article_id
+            FROM {table_name}
+            WHERE (category_id, brand_id) IN (VALUES {','.join(['(?,?)' for _ in cat_brn])})
+            """,
+            [
+                param
+                for pair in cat_brn
+                for param in [
+                    normalize_category_id(pair[0]),
+                    normalize_brand_id(pair[1]),
+                ]
+            ],
+        )
+        matched_articles = {row["article_id"] for row in cursor.fetchall()}
+        conn.close()
+    except sqlite3.Error as e:
+        print(f"❌ Database error while fetching matched article_ids: {e}")
+        return
+
+    if not matched_articles:
+        print("✅ No matched article_ids to process.")
+        return
+
+    print(
+        f"Searching for the original lines of {len(matched_articles)} matched article_ids..."
+    )
+
+    # --- Step 2: Open the output file and search through the source files line by line ---
+    found_count = 0
+    header_written = False
+    try:
+        with open(to_file, "w", encoding="utf-8") as outfile:
+            for file_path in source_files:
+                if not matched_articles:
+                    break
+                try:
+                    with open(file_path, "r", encoding="utf-8") as infile:
+                        # Read the header to find the column index for "MATNR"
+                        header_line = next(infile, None)
+                        if not header_line:
+                            continue  # Skip empty files
+
+                        if not header_written:
+                            outfile.write(header_line)
+                            header_written = True
+
+                        # Process the rest of the file
+                        for line in infile:
+                            try:
+                                raw_article_id = line.strip().split("|")[0]
+                                normalized_article_id = normalize_article_id(
+                                    raw_article_id
+                                )
+
+                                if normalized_article_id in matched_articles:
+                                    matched_articles.remove(normalized_article_id)
+                                    outfile.write(
+                                        line
+                                    )  # Write the original, unmodified line
+                                    found_count += 1
+                            except IndexError:
+                                # This will skip malformed lines that don't have enough columns
+                                continue
+                except FileNotFoundError:
+                    print(f"Warning: Source file not found, skipping: {file_path}")
+    except IOError as e:
+        print(f"❌ Error writing to output file '{to_file}': {e}")
+
+    print(
+        f"\n✅ Process complete. Found and wrote {found_count} original lines to '{to_file}'."
+    )
+
+
 # --- Example Usage ---
 if __name__ == "__main__":
+    sync_s3()
     create_imported_logs(DB_NAME, IMOPORTED_LOG_TABLE_NAME)
     create_article_config_table(TABLE_NAME)
 
@@ -256,3 +355,9 @@ if __name__ == "__main__":
         last_run,
         os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
     )
+    # write_raw_record_of_match_article(
+    #     [f.path for f in article_files],
+    #     TABLE_NAME,
+    #     [("201", "CHN"), ("202", "CHN")],
+    #     "data/ARTICLE_MATCH_{now}.csv".format(now=datetime.datetime.now().strftime('%Y%m%d_%H%M%s')),
+    # )
