@@ -323,6 +323,26 @@ def write_raw_record_of_match_article(
     )
 
 
+def find_article(*skus: str):
+    try:
+        conn = get_db_connection(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM {TABLE_NAME}
+            WHERE article_id IN ({','.join(['?' for _ in skus])})
+            """,
+            skus,
+        )
+        result = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return result
+    except sqlite3.Error as e:
+        print(f"❌ Database error while fetching matched article_ids: {e}")
+        return []
+
+
 # --- Example Usage ---
 if __name__ == "__main__":
     sync_s3()
@@ -355,6 +375,8 @@ if __name__ == "__main__":
         last_run,
         os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
     )
+    for article in find_article("000000000002426067", "000000000002426081", "000000000002426049"):
+        print(article)
     # write_raw_record_of_match_article(
     #     [f.path for f in article_files],
     #     TABLE_NAME,
