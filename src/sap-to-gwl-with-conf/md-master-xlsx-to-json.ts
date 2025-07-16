@@ -4,6 +4,11 @@ import path from "path";
 import { read_xlsx } from "../utils/read-xlsx.js";
 import { timestampString } from "../utils/timestamp-string.js";
 import { buildCompanyMap, COMPANY } from "./channels-master.js";
+import {
+  S3Client,
+  PutObjectCommand,
+  PutObjectCommandInput,
+} from "@aws-sdk/client-s3";
 
 const COLUMN_CATEGORY_NUMBER = "CATEGORY_NUMBER"; // for master category config
 const COLUMN_CATEGORY = "CATE";
@@ -95,6 +100,8 @@ function normalizeCategoryAndBrandRule(
       const categoryMaster = normalizeCategoryId(item[COLUMN_CATEGORY_NUMBER]);
       const brandMaster = normalizeBrandId(item[COLUMN_BRAND_NUMBER]);
 
+      if (brandMaster) continue; // not used yet
+
       const skus = normalizeArticleId(item[COLUMN_SKUS]);
       const category =
         categoryMaster || //
@@ -116,7 +123,10 @@ function normalizeCategoryAndBrandRule(
           if (skus && category && brand) {
             return skus
               .split(/\s*;\s*/)
-              .map((s: string) => ["CAT|BRN|SKU", `${category}|${brand}|${s.replace(/^0+/, "")}`]);
+              .map((s: string) => [
+                "CAT|BRN|SKU",
+                `${category}|${brand}|${s.replace(/^0+/, "")}`,
+              ]);
           } else if (category && brand) {
             return [["CAT|BRN", `${category}|${brand}`]];
           } else {
@@ -232,43 +242,97 @@ function writeToFile(filePath: string[], content: any): void {
   console.log(`Data successfully written to ${resolvedPath}`);
 }
 
-export function convertXlsxConfigurationToJson(
+interface S3UploadParam {
+  bucket: string;
+  key: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
+async function writeToS3(param: S3UploadParam, content: any) {
+  // Create S3 client
+  const s3Client = new S3Client({
+    credentials: {
+      accessKeyId: param.accessKeyId,
+      secretAccessKey: param.secretAccessKey,
+    },
+  });
+
+  // Convert content to string if not already
+  const contentString =
+    typeof content === "string" ? content : JSON.stringify(content, null, 2);
+
+  // Set up parameters
+  const putObjectCommandInput: PutObjectCommandInput = {
+    Bucket: param.bucket,
+    Key: param.key,
+    Body: contentString,
+    ContentType: "application/json",
+  };
+
+  // Upload to S3
+  try {
+    await s3Client.send(new PutObjectCommand(putObjectCommandInput));
+    console.log(
+      `Data successfully uploaded to ${putObjectCommandInput.Bucket}/${putObjectCommandInput.Key}`
+    );
+  } catch (err: any) {
+    console.error("Error uploading to S3:", err);
+    throw err;
+  }
+}
+
+interface ConvertXlsxConfigurationToJsonOptions {
+  jsonPath?: string;
+  s3UploadParams?: S3UploadParam[];
+}
+
+export async function convertXlsxConfigurationToJson(
   xlsxPath: string,
-  jsonPath?: string
+  options?: ConvertXlsxConfigurationToJsonOptions
 ) {
+  const { jsonPath, s3UploadParams } = options ?? {};
   const folderPath = path.dirname(xlsxPath);
   const baseName = path.basename(xlsxPath).split(".").slice(0, -1).join(".");
 
   const jsonObject = read_xlsx(xlsxPath);
-  writeToFile(
-    [folderPath, "output", baseName + ".json"],
-    jsonObject //
-  );
+  // writeToFile(
+  //   [folderPath, "output", baseName + ".json"],
+  //   jsonObject //
+  // );
 
   const [normalizedJsonObject, errors] =
     normalizeCategoryAndBrandRule(jsonObject);
 
-  writeToFile(
-    [folderPath, "output", baseName + ".norm.json"],
-    normalizedJsonObject
-  );
-  const errorPath = [folderPath, "output", baseName + `.error.${timestampString()}.txt`]
-  writeToFile(
-    errorPath,
-    errors.join("\n")
-  );
-  writeToFile(
-    [folderPath, "output", baseName + ".category.json"],
-    findMajorityCategoryConfiguration(jsonObject)
-  );
-  writeToFile(
-    [folderPath, "output", baseName + ".brand.json"],
-    findMajorityBrandConfiguration(jsonObject)
-  );
+  // writeToFile(
+  //   [folderPath, "output", baseName + ".norm.json"],
+  //   normalizedJsonObject
+  // );
+  // writeToFile(
+  //   [folderPath, "output", baseName + ".category.json"],
+  //   findMajorityCategoryConfiguration(jsonObject)
+  // );
+  // writeToFile(
+  //   [folderPath, "output", baseName + ".brand.json"],
+  //   findMajorityBrandConfiguration(jsonObject)
+  // );
 
   if (jsonPath) {
     writeToFile([jsonPath], normalizedJsonObject);
   }
+  if (s3UploadParams?.length) {
+    for (const param of s3UploadParams) {
+      await writeToS3(param, normalizedJsonObject[COMPANY.KPC]);
+    }
+  }
 
-  if (errors.length) throw `There is some errors in master file.\n${path.join(...errorPath)}`
+  if (errors.length) {
+    const errorPath = [
+      jsonPath ? path.dirname(jsonPath) : folderPath,
+      "output",
+      baseName + `.error.${timestampString()}.txt`,
+    ];
+    writeToFile(errorPath, errors.join("\n"));
+    throw `There is some errors in master file.\n${path.join(...errorPath)}`;
+  }
 }

@@ -3,8 +3,7 @@ dotenv.config();
 
 // ================================================================================================================
 const SKU_CONFIG_XLSX_PATH =
-  "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER-v20250626.xlsx";
-  // "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER.xlsx";
+  "/Users/pakawin_m/Library/CloudStorage/OneDrive-KingPowerGroup/[KPGDX-GWL] - Group-wide Loyalty - GWL - 07_Cutover Plan/cat-brand-master/GWL-SKU-CAT-BRAND-MASTER.xlsx";
 const SKU_CONFIG_JSON_PATH =
   "/Users/pakawin_m/workspace/kpc-gwl-category-brand-conf/data/sku-configuration-prod/GWL-SKU-CAT-BRAND-MASTER.json";
 const SOURCE_FOLDER =
@@ -23,11 +22,26 @@ async function main() {
   // ================================================ sync data from S3
   const today = moment().format("YYYYMMDD");
   console.log(
-    `aws s3 sync --exclude="*" --include "*_${today}_*" s3://${process.env.AWS_BUCKET_NAME} ./data`,
+    `aws s3 sync --exclude="*" --include "*_${today}_*" s3://${process.env.PRD_AWS_BUCKET_NAME} ./data`
   );
 
   // ================================================ transform MD master
-  convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, SKU_CONFIG_JSON_PATH);
+  await convertXlsxConfigurationToJson(SKU_CONFIG_XLSX_PATH, {
+    jsonPath: SKU_CONFIG_JSON_PATH,
+    s3UploadParams: [
+      {
+        key: "cat-brand-sku-config.json",
+        bucket: process.env.PRD_AWS_BUCKET_NAME!,
+        accessKeyId: process.env.PRD_AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.PRD_AWS_SECRET_ACCESS_KEY!,
+      },      {
+        key: "cat-brand-sku-config.json",
+        bucket: process.env.DEV_AWS_BUCKET_NAME!,
+        accessKeyId: process.env.DEV_AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.DEV_AWS_SECRET_ACCESS_KEY!,
+      },
+    ],
+  });
 
   // ================================================
   const service = new SapToGwlWithConfService(
