@@ -249,7 +249,7 @@ export class Uploader {
       fileName
     );
 
-    console.log("🔫🔫🔫 import product", fileName);
+    console.log("🔫🔫🔫 import cost center", fileName);
     const response = await fetch(
       `https://${this.HOST}/admin/cost-centers/import`,
       {
