@@ -2,6 +2,7 @@ import datetime
 import os
 import sqlite3
 import csv
+from traceback import print_exc, print_stack
 from typing import List, Tuple
 from file_listing import FileType, list_files_in_folder
 from abc_normalize import (
@@ -25,7 +26,7 @@ FILE_TYPE = FileType.ARTICLE
 DB_NAME = "data/articles.db"
 TABLE_NAME = "articles"
 IMOPORTED_LOG_TABLE_NAME = "articles_imported_log"
-OUTPUT_FILE_NAME = "S4P_ARTICLE_FULL_{today}_999999_1_1"
+OUTPUT_FILE_NAME = "S4P_ARTICLE_FULL_{today}_999999_1_1.CSV"
 
 
 def create_article_config_table(table_name: str):
@@ -231,8 +232,9 @@ def write_raw_record_of_delta_article(
 def write_raw_record_of_match_article(
     source_files: list[str],
     table_name: str,
-    cat_brn: List[Tuple[str, str]],
     to_file: str,
+    cat_brn: List[Tuple[str, str]] = None,
+    skus: List[str] = None,
 ):
     """
     Finds the original, unprocessed lines for SKUs identified as missing.
@@ -244,28 +246,57 @@ def write_raw_record_of_match_article(
         source_files: A list of raw data CSV file paths to search through.
     """
 
+    def get_chunks(data, size):
+        return [data[i : i + size] for i in range(0, len(data), size)]
+
+
     # --- Step 1: Read the list of missing article_ids into a set for fast lookups ---
     try:
         conn = get_db_connection(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute(
-            f"""
-            SELECT article_id
-            FROM {table_name}
-            WHERE (category_id, brand_id) IN (VALUES {','.join(['(?,?)' for _ in cat_brn])})
-            """,
-            [
-                param
-                for pair in cat_brn
-                for param in [
-                    normalize_category_id(pair[0]),
-                    normalize_brand_id(pair[1]),
-                ]
-            ],
-        )
-        matched_articles = {row["article_id"] for row in cursor.fetchall()}
+        if cat_brn and skus:
+            raise Exception("Either cat_brn or skus")
+        elif cat_brn:
+            matched_articles = set()
+            for chunk in get_chunks(cat_brn, 10000):
+                cursor = conn.cursor()
+                cursor.execute(
+                    f"""
+                    SELECT article_id
+                    FROM {table_name}
+                    WHERE (category_id, brand_id) IN (VALUES {','.join(['(?,?)' for _ in chunk])})
+                    """,
+                    [
+                        param
+                        for pair in chunk
+                        for param in [
+                            normalize_category_id(pair[0]),
+                            normalize_brand_id(pair[1]),
+                        ]
+                    ],
+                )
+                matched_articles = matched_articles.union(
+                    {row["article_id"] for row in cursor.fetchall()}
+                )
+        elif skus:
+            matched_articles = set()
+            for chunk in get_chunks(skus, 10000):
+                cursor = conn.cursor()
+                cursor.execute(
+                    f"""
+                    SELECT article_id
+                    FROM {table_name}
+                    WHERE article_id IN ({','.join(['?' for _ in chunk])})
+                    """,
+                    chunk,
+                )
+                matched_articles = matched_articles.union(
+                    {row["article_id"] for row in cursor.fetchall()}
+                )
+        else:
+            raise Exception("Either cat_brn or skus")
         conn.close()
     except sqlite3.Error as e:
+        print_exc()
         print(f"❌ Database error while fetching matched article_ids: {e}")
         return
 
@@ -343,6 +374,14 @@ def find_article(*skus: str):
         return []
 
 
+def find_clearance_list():
+    with open("./script/article-clearance-list.txt", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        yield "{:>018s}".format(line.strip())
+
+
 # --- Example Usage ---
 if __name__ == "__main__":
     sync_s3()
@@ -369,17 +408,28 @@ if __name__ == "__main__":
     print("last run", last_run)
     today = datetime.date.today().isoformat().replace("-", "")
     article_files.sort(key=lambda k: k.datetime, reverse=True)
-    write_raw_record_of_delta_article(
-        [f.path for f in article_files],
-        TABLE_NAME,
-        last_run,
-        os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
-    )
-    for article in find_article("000000000002426067", "000000000002426081", "000000000002426049"):
-        print(article)
+    # write_raw_record_of_delta_article(
+    #     [f.path for f in article_files],
+    #     TABLE_NAME,
+    #     last_run,
+    #     os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
+    # )
+    # for article in find_article("000000000002426067", "000000000002426081", "000000000002426049"):
+    #     print(article)
     # write_raw_record_of_match_article(
     #     [f.path for f in article_files],
     #     TABLE_NAME,
-    #     [("201", "CHN"), ("202", "CHN")],
     #     "data/ARTICLE_MATCH_{now}.csv".format(now=datetime.datetime.now().strftime('%Y%m%d_%H%M%s')),
+    #     [
+    #         ("228", "GUC"),
+    #         ("434", "GUC"),
+    #         ("234", "HER"),
+    #         ("228", "DIO"),
+    #     ],
     # )
+    write_raw_record_of_match_article(
+        [f.path for f in article_files],
+        TABLE_NAME,
+        os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
+        skus=list(find_clearance_list()),
+    )

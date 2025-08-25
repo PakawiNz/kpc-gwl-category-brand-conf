@@ -34,7 +34,8 @@ async function main() {
         bucket: process.env.PRD_AWS_BUCKET_NAME!,
         accessKeyId: process.env.PRD_AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.PRD_AWS_SECRET_ACCESS_KEY!,
-      },      {
+      },
+      {
         key: "cat-brand-sku-config.json",
         bucket: process.env.DEV_AWS_BUCKET_NAME!,
         accessKeyId: process.env.DEV_AWS_ACCESS_KEY_ID!,

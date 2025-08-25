@@ -20,7 +20,7 @@ FILE_TYPE = FileType.BRAND
 DB_NAME = "data/brands.db"
 TABLE_NAME = "brands"
 IMOPORTED_LOG_TABLE_NAME = "brands_imported_log"
-OUTPUT_FILE_NAME = "S4P_BRAND_FULL_{today}_999999_1_1"
+OUTPUT_FILE_NAME = "S4P_BRAND_FULL_{today}_999999_1_1.CSV"
 
 
 def create_brand_config_table(table_name: str):
@@ -240,6 +240,6 @@ if __name__ == "__main__":
     write_raw_record_of_delta_brand(
         [f.path for f in brand_files],
         TABLE_NAME,
-        last_run,
+        datetime.date(2025, 8, 1),
         os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
     )

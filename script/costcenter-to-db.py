@@ -20,7 +20,7 @@ FILE_TYPE = FileType.COST_CENTER
 DB_NAME = "data/costcenters.db"
 TABLE_NAME = "costcenters"
 IMOPORTED_LOG_TABLE_NAME = "costcenters_imported_log"
-OUTPUT_FILE_NAME = "S4P_COSTCENTER_FULL_{today}_999999_1_1"
+OUTPUT_FILE_NAME = "S4P_COSTCENTER_FULL_{today}_999999_1_1.CSV"
 
 
 def create_costcenter_config_table(table_name: str):
@@ -190,7 +190,7 @@ def write_raw_record_of_delta_costcenter(
                         # Process the rest of the file
                         for line in infile:
                             try:
-                                raw_costcenter_id = line.strip().split("|")[0]
+                                raw_costcenter_id = line.strip().split("|")[1]
                                 normalized_costcenter_id = normalize_text(
                                     raw_costcenter_id
                                 )
@@ -244,6 +244,6 @@ if __name__ == "__main__":
     write_raw_record_of_delta_costcenter(
         [f.path for f in costcenter_files],
         TABLE_NAME,
-        last_run,
+        datetime.date(2025, 8, 1),
         os.path.join(SOURCE_FOLDER, OUTPUT_FILE_NAME.format(today=today)),
     )
